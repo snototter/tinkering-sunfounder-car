@@ -1,3 +1,10 @@
+############################################
+## Custom ignores
+third_party/*
+*~
+
+############################################
+## Auto-generated Python ignores from github:
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
