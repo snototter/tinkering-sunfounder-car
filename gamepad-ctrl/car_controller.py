@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from abc import ABCMeta, abstractmethod
+import socket
 
 class CarController:
     __metaclass__ = ABCMeta
@@ -21,13 +22,33 @@ class CarController:
     def steer_left(self):
         return
 
+    @abstractmethod
     def steer_straight(self):
         return
 
+    @abstractmethod
+    def steer_right(self):
+        return
+
+    # TODO pan/tilt; home all; stop all;
+
 
 class TcpCarController(CarController):
-    """Connects to the Sunfounder TCP client"""
-    pass
+    """Connects to the Sunfounder TCP server."""
+    def __init__(self):
+        # TODO parameter: config
+        self.is_connected = False
+        self.host = '192.168.0.31'
+        self.port = 21567
+        self.tcp_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.tcp_client.connect((self.host, self.port))
+        self.is_connected = True
+
+    def __del__(self):
+        if self.is_connected:
+            self.tcp_client.send('stop')
+            self.tcp_client.close()
+
 
 class LocalCarController(CarController):
     """To be used on the pi, accesses the pins directly."""
@@ -36,22 +57,25 @@ class LocalCarController(CarController):
 class DummyCarController(CarController):
     """Used to debug without pi running"""
     def drive_forward(self):
-        print('Forward')
+        print('MV Forward')
         return True
 
     def drive_backward(self):
-        print('Backward')
+        print('MV Backward')
         return True
 
     def stop_driving(self):
-        print('Motors stopped')
+        print('MV Motors stopped')
         return True
 
     def steer_left(self):
-        print('Left')
+        print('ST Left')
         return True
 
     def steer_right(self):
-        print('Right')
+        print('ST Right')
         return True
 
+    def steer_straight(self):
+        print('ST Straight')
+        return True
