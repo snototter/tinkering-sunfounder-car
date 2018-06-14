@@ -37,6 +37,7 @@ class TcpCarController(CarController):
     """Connects to the Sunfounder TCP server."""
     def __init__(self):
         # TODO parameter: config
+        # Connect to the car's TCP server:
         self.is_connected = False
         self.host = '192.168.0.31'
         self.port = 21567
@@ -45,9 +46,49 @@ class TcpCarController(CarController):
         self.is_connected = True
 
     def __del__(self):
+        # Disconnect
         if self.is_connected:
             self.tcp_client.send('stop')
             self.tcp_client.close()
+
+    def drive_forward(self):
+        self.tcp_client.send('forward')
+        return True
+
+    def drive_backward(self):
+        self.tcp_client.send('backward')
+        return True
+
+    def stop_driving(self):
+        self.tcp_client.send('stop')
+        return True
+
+    def steer_left(self):
+        self.tcp_client.send('left')
+        return True
+
+    def steer_right(self):
+        self.tcp_client.send('right')
+        return True
+
+    def steer_straight(self):
+        self.tcp_client.send('home')
+        return True
+# TODO 'home' home all or only steering servo???, xy_home is for pan/tilt, ... check sunfounder's server implementation
+#def stop_fun(event):
+#	tcpCliSock.send('stop')
+#def home_fun(event):
+#	tcpCliSock.send('home')
+#def x_increase(event):
+#	tcpCliSock.send('x+')
+#def x_decrease(event):
+#	tcpCliSock.send('x-')
+#def y_increase(event):
+#	tcpCliSock.send('y+')
+#def y_decrease(event):
+#	tcpCliSock.send('y-')
+#def xy_home(event):
+#	tcpCliSock.send('xy_home')
 
 
 class LocalCarController(CarController):
