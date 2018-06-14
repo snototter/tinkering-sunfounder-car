@@ -9,19 +9,26 @@ from inputs import devices, get_gamepad, get_key, get_mouse
 class CarController:
     def move_forward(self):
         print('Moving forward')
+        return True
+
     def stop_moving(self):
         print('Stop moving')
+        return True
+
     def move_backward(self):
         print('Moving backward')
+        return True
 
+# Make util
 def enum(**enums):
     return type('Enum', (), enums)
 
+"""Backward compatible enums for valid system states""""
 DrivingState = enum(STOPPED=1, FORWARD=2, BACKWARD=3)
 SteeringState = enum(STRAIGHT=1, LEFT=2, RIGHT=3)
 
 class GamepadCarController(CarController):
-
+    """Controlling the RaspberryPi-powered car via a gamepad."""
     def __init__(self):
         # Event mapping for our CSL Generic Gamepad
         self.event_mapping = { 
@@ -68,7 +75,7 @@ class GamepadCarController(CarController):
         pass
 
     def req_drive(self, ctrl_callback, desired_state, event_value):
-        """Invoke the given control callback if we're not in the desired state. Otherwise, stop moving."""
+        """Invoke the given control callback if we're not in the desired state. Otherwise, stop moving. Leveraged by our req_fwd/bwd request handlers."""
         if event_value:
             if self.states['drive'] != desired_state:
                 if ctrl_callback():
@@ -80,8 +87,11 @@ class GamepadCarController(CarController):
                 print('already moving')
         else:
             if self.states['drive'] == desired_state:
-                self.stop_moving()
-                self.states['drive'] = self.DriveState.STOPPED
+                if self.stop_moving():
+                    self.states['drive'] = self.DriveState.STOPPED
+                else:
+                    # Raise exception
+                    pass
 
     def req_fwd(self, value):
         req_drive(self.move_forward, DrivingState.FORWARD, value)
