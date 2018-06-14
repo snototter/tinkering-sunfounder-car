@@ -27,6 +27,8 @@ class GamepadController:
                 'BTN_THUMB2' : self.req_bwd,
                 'BTN_THUMB' : self.req_right,
                 'BTN_TOP' : self.req_left,
+# TOP2, PINKIE speed up
+# BASE, BASE2 slow down
                 },
             'Absolute' : {
                 'ABS_RZ' : self.req_driving_stick255,
@@ -45,6 +47,7 @@ class GamepadController:
             'drive' : DrivingState.STOPPED,
             'steering' : SteeringState.STRAIGHT,
         }
+        # TODO stop all motors, home all servos, reset speed
 #Add button to home&stop all
 
 
