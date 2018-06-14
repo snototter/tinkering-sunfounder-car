@@ -1,35 +1,25 @@
 #!/usr/bin/env python
 
+import car_controller as ctrl
 import sys
 
 # Zeth's inputs library
 sys.path.append('../third_party/inputs')
 from inputs import devices, get_gamepad, get_key, get_mouse
 
-class CarController:
-    def move_forward(self):
-        print('Moving forward')
-        return True
-
-    def stop_moving(self):
-        print('Stop moving')
-        return True
-
-    def move_backward(self):
-        print('Moving backward')
-        return True
-
 # Make util
 def enum(**enums):
     return type('Enum', (), enums)
 
-"""Backward compatible enums for valid system states""""
+"""Backward compatible enums for valid system states"""
 DrivingState = enum(STOPPED=1, FORWARD=2, BACKWARD=3)
 SteeringState = enum(STRAIGHT=1, LEFT=2, RIGHT=3)
 
-class GamepadCarController(CarController):
+class GamepadController:
     """Controlling the RaspberryPi-powered car via a gamepad."""
     def __init__(self):
+        #self.controller = ctrl.TcpCarController()
+        self.controller = ctrl.DummyCarController()
         # Event mapping for our CSL Generic Gamepad
         self.event_mapping = { 
             'Key' : {
@@ -48,7 +38,7 @@ class GamepadCarController(CarController):
 #Add button to home&stop all
             
 
-    def listen_for_events(self):
+    def handle_events(self):
         try:
             while True:
                 events = get_gamepad()
@@ -78,45 +68,36 @@ class GamepadCarController(CarController):
         """Invoke the given control callback if we're not in the desired state. Otherwise, stop moving. Leveraged by our req_fwd/bwd request handlers."""
         if event_value:
             if self.states['drive'] != desired_state:
+                # If moving in the opposite direction, stop the motor first.
+                if self.states['drive'] != DrivingState.STOPPED:
+                    self.req_stop_driving()
+                # Try to start moving in the requested direction.
                 if ctrl_callback():
                     self.states['drive'] = desired_state
                 else:
-                    # Raise exception
+                    # TODO Raise exception
                     pass
-            else:
-                print('already moving')
         else:
             if self.states['drive'] == desired_state:
-                if self.stop_moving():
-                    self.states['drive'] = self.DriveState.STOPPED
-                else:
-                    # Raise exception
-                    pass
+                self.req_stop_driving()
 
     def req_fwd(self, value):
-        req_drive(self.move_forward, DrivingState.FORWARD, value)
+        self.req_drive(self.controller.drive_forward, DrivingState.FORWARD, value)
 
     def req_bwd(self, value):
-        req_drive(self.move_forward, DrivingState.BACKWARD, value)
+        self.req_drive(self.controller.drive_backward, DrivingState.BACKWARD, value)
+
+    def req_stop_driving(self):
+        if self.controller.stop_driving():
+            self.states['drive'] = DrivingState.STOPPED
+        else:
+            # TODO Raise exception
+            pass
     
-#    def req_fwd(self, state):
-#        '''Event to move forward (or stop moving forward) has been triggered'''
-#        if state:
-#            if self.states['drive'] != DriveState.FORWARD
-#                print('moving forward....{}'.format(state))
-#                self.move_forward()
-#                self.states['drive'] = DriveState.FORWARD
-#            else:
-#                print('already moving fwd')
-#        else:
-#            if self.states['drive'] == DriveState.FORWARD:
-#                print('stop moving fwd')
-#                self.stop_moving()
-#                self.states['drive'] = self.DriveState.STOPPED
 
 def main():
-    car_ctrl = GamepadCarController()
-    car_ctrl.listen_for_events()
+    car_ctrl = GamepadController()
+    car_ctrl.handle_events()
 
 
 if __name__ == "__main__":
