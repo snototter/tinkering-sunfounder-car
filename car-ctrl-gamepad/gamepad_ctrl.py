@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+#TODO add cd to python path https://stackoverflow.com/questions/5137497/find-current-directory-and-files-directory
+
 import car_controller as ctrl
 import sys
 
@@ -7,13 +9,35 @@ import sys
 sys.path.append('../third_party/inputs')
 from inputs import devices, get_gamepad, get_key, get_mouse
 
-# Make util
+# TODO Make util
 def enum(**enums):
     return type('Enum', (), enums)
 
 """Backward compatible enums for valid system states"""
-DrivingState = enum(STOPPED=1, FORWARD=2, BACKWARD=3)
-SteeringState = enum(STRAIGHT=1, LEFT=2, RIGHT=3)
+DrivingState = enum(STOPPED=1, FORWARD=2, BACKWARD=4)
+SteeringState = enum(STRAIGHT=1, LEFT=2, RIGHT=4)
+
+
+# TODO parametrize initialization of GamepadController
+# Dict Key/Absolute : { event/button code : Driving/Steering/... enum }
+# TODO Should we rename it? Key = Button, Absolute = Joystick ?
+# TODO add param stick_jittering_rejection (percentage)
+def get_csl_generic_gamepad_config():
+    """Exemplary config for our CSL Generic Gamepad"""
+    gamepad_config = { 
+        'Key' : {
+            'BTN_TRIGGER' : DrivingState.FORWARD, 
+            'BTN_THUMB2' : DrivingState.BACKWARD,
+            'BTN_THUMB' : SteeringState.RIGHT,
+            'BTN_TOP' : SteeringState.LEFT,
+            },
+        'Absolute' : {
+            # TODO config_value & (FWD | BWD)
+            # we need the axis range, though!
+            'ABS_RZ' : 
+            },
+        }
+    return gamepad_config
 
 class GamepadController:
     """Controlling the RaspberryPi-powered car via a gamepad."""
@@ -41,7 +65,6 @@ class GamepadController:
             'Sync' : { 'SYN_REPORT' : self.req_ignore },
             'Misc' : { 'MSC_SCAN' : self.req_ignore }
             }
-# Add Absolute - map 0..127..255 to -1 0 1, pass to move_fwd()
         # We need to keep track of the servo states programmatically for now, to avoid killing the servos
         self.states = {
             'drive' : DrivingState.STOPPED,
