@@ -3,6 +3,13 @@
 from abc import ABCMeta, abstractmethod
 import socket
 
+import sys
+# Load sunfounder's motor/servo utils
+sys.path.append('../third_party/sunfounder/server')
+import car_dir as sfsteering
+import motor as sfdriving
+import video_dir as sfpantilt
+
 class CarController:
     __metaclass__ = ABCMeta
 
@@ -93,6 +100,7 @@ class TcpCarController(CarController):
 
 class LocalCarController(CarController):
     """To be used on the pi, accesses the pins directly."""
+    # use sfsteering, sfdriving, sfpantilt
     pass
 
 class DummyCarController(CarController):

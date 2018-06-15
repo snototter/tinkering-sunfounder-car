@@ -17,6 +17,15 @@ then
   svn export https://github.com/zeth/inputs/trunk ${zeth_inputs}
 fi
 
+# Download SunFounder's demo to reuse the motor/servo control.
+sunfounder_repo=${third_party_dir}/sunfounder
+if [ ! -d "${sunfounder_repo}" ]
+then
+  echo "Setting up third party: sunfounder"
+  svn export https://github.com/sunfounder/Sunfounder_Smart_Video_Car_Kit_for_RaspberryPi/trunk ${sunfounder_repo}
+fi
+
+
 # Virtual environment
 venv=.venv
 if [ ! -d "${venv}" ]
