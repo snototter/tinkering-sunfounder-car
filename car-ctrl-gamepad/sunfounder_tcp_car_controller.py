@@ -58,18 +58,28 @@ class TcpCarController(CarController):
         time.sleep(0.1)
         return True
 
-# TODO 'home' home all or only steering servo???, xy_home is for pan/tilt, ... check sunfounder's server implementation
-#def stop_fun(event):
-#	tcpCliSock.send('stop')
-#def home_fun(event):
-#	tcpCliSock.send('home')
-#def x_increase(event):
-#	tcpCliSock.send('x+')
-#def x_decrease(event):
-#	tcpCliSock.send('x-')
-#def y_increase(event):
-#	tcpCliSock.send('y+')
-#def y_decrease(event):
-#	tcpCliSock.send('y-')
-#def xy_home(event):
-#	tcpCliSock.send('xy_home')
+    def pan_left(self):
+        self.tcp_client.send('x-'.encode())
+        time.sleep(0.1)
+        return True
+
+    def pan_right(self):
+        self.tcp_client.send('x+'.encode())
+        time.sleep(0.1)
+        return True
+
+    def tilt_up(self):
+        self.tcp_client.send('y+'.encode())
+        time.sleep(0.1)
+        return True
+
+    def tilt_down(self):
+        self.tcp_client.send('y-'.encode())
+        time.sleep(0.1)
+        return True
+
+    def home_pan_tilt(self):
+        self.tcp_client.send('xy_home'.encode())
+        time.sleep(0.1)
+        return True
+

@@ -59,7 +59,8 @@ class GamepadController:
             'Absolute' : {
                 'ABS_RZ' : self.__req_driving_stick255,
                 'ABS_RX' : self.__req_steering_stick255,
-                #'ABS_Y' :
+                'ABS_X' : self.__req_pan_stick255,
+                'ABS_Y' : self.__req_tilt_stick255,
                 #'ABS_RZ' : (self.__req_fwd, -1, 255), # values less than the middle (127-131) indicate that we should move forward (we'll check the sign)
                 #TODO self.__req_driving_stick255 (instead of tuple) map 0-0.45 to fwd, 0.45-0.55 to stop, 0.55+ to backward
                 },
@@ -225,6 +226,30 @@ class GamepadController:
           if spd - self.step_size_speed > self.speed_range[0]:
               spd = spd - self.step_size_speed
               self.__req_setspeed(spd)
+
+
+    def __req_pan_stick255(self, event_value):
+        #TODO limit pan/tilt movement programmatically!
+        #TODO in analog mode, this event will be triggered multiple times per stick touch!!
+        # Sunfounder's video_dir ctrl only allows changing the pan/tilt angle by a fixed inc/dec
+        if event_value < 0.45*255:
+            self.controller.pan_left()
+        elif event_value >= 0.55*255:
+            self.controller.pan_right()
+
+    def __req_tilt_stick255(self, event_value):
+        #TODO limit pan/tilt movement programmatically!
+        #TODO in analog mode, this event will be triggered multiple times per stick touch!!
+        # Sunfounder's video_dir ctrl only allows changing the pan/tilt angle by a fixed inc/dec
+        if event_value < 0.45*255:
+            self.controller.tilt_up()
+        elif event_value >= 0.55*255:
+            self.controller.tilt_down()
+        #    self.__req_steering(self.controller.steer_left, SteeringState.LEFT, True)
+        #elif event_value < 0.55*255:
+        #    self.__req_steer_straight()
+        #else:
+        #    self.__req_steering(self.controller.steer_right, SteeringState.RIGHT, True)
 
 
     def __req_stop_all(self, event_value):

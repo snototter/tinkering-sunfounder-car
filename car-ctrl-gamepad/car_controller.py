@@ -33,15 +33,33 @@ class CarController:
     def set_speed(self, speed_value):
         return
 
+    @abstractmethod
+    def pan_left(self):
+        return
+
+    @abstractmethod
+    def pan_right(self):
+        return
+
+    @abstractmethod
+    def tilt_up(self):
+        return
+
+    @abstractmethod
+    def tilt_down(self):
+        return
+
+    @abstractmethod
+    def home_pan_tilt(self):
+        return
+
     def stop_all(self):
         self.stop_driving()
 
     def home_all(self):
         self.stop_all()
         self.steer_straight()
-#TODO        self.pan(0)
-
-    # TODO pan/tilt; home all; stop all;
+        self.home_pan_tilt()
 
 
 class DummyCarController(CarController):
@@ -71,6 +89,26 @@ class DummyCarController(CarController):
         return True
 
     def set_speed(self, speed_value):
-        print('Setting speed to {}'.format(speed_value))
+        print('MV Speed ({})'.format(speed_value))
+        return True
+
+    def pan_left(self):
+        print('CAM Left')
+        return True
+
+    def pan_right(self):
+        print('CAM Right')
+        return True
+
+    def tilt_up(self):
+        print('CAM Up')
+        return True
+
+    def tilt_down(self):
+        print('CAM Down')
+        return True
+
+    def home_pan_tilt(self):
+        print('CAM Home')
         return True
 
