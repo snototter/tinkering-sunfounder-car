@@ -1,204 +1,158 @@
---- ../third_party/sunfounder/server/PCA9685.py	2018-05-30 03:55:23.000000000 +0200
-+++ sunfounder-patched/PCA9685.py	2018-06-17 21:12:21.837554187 +0200
-@@ -95,29 +95,29 @@
-                     elif line[11:-1] in self.RPI_REVISION_3_MODULE_BP:
-                         return '3 Module B+'
-                     else:
--                        print "Error. Pi revision didn't recognize, module number: %s" % line[11:-1]
--                        print 'Exiting...'
-+                        print("Error. Pi revision didn't recognize, module number: %s" % line[11:-1])
-+                        print('Exiting...')
-                         quit()
--        except Exception, e:
-+        except:
-             f.close()
--            print e
--            print 'Exiting...'
-+            #print(e)
-+            print('Exiting...')
-             quit()
-         finally:
-             f.close()
- 
-     def __init__(self, bus_number=None, address=0x40):
-         '''Init the class with bus_number and address'''
--        if self._DEBUG:
--            print self._DEBUG_INFO, "Debug on"
-+        #if self._DEBUG:
-+        #    print(self._DEBUG_INFO, "Debug on")
-         self.address = address
-         if bus_number == None:
-             self.bus_number = self._get_bus_number()
-         else:
-             self.bus_number = bus_number
-         self.bus = smbus.SMBus(self.bus_number)
--        if self._DEBUG:
--            print self._DEBUG_INFO, 'Reseting PCA9685 MODE1 (without SLEEP) and MODE2'
-+        #if self._DEBUG:
-+        #    print(self._DEBUG_INFO, 'Reseting PCA9685 MODE1 (without SLEEP) and MODE2')
-         self.write_all_value(0, 0)
-         self._write_byte_data(self._MODE2, self._OUTDRV)
-         self._write_byte_data(self._MODE1, self._ALLCALL)
-@@ -131,44 +131,42 @@
- 
-     def _write_byte_data(self, reg, value):
-         '''Write data to I2C with self.address'''
--        if self._DEBUG:
--            print self._DEBUG_INFO, 'Writing value %2X to %2X' % (value, reg)
-+        #if self._DEBUG:
-+            #print(self._DEBUG_INFO, 'Writing value %2X to %2X' % (value, reg))
-         try:
-             self.bus.write_byte_data(self.address, reg, value)
--        except Exception, i:
--            print i
-+        except:
-             self._check_i2c()
- 
-     def _read_byte_data(self, reg):
-         '''Read data from I2C with self.address'''
--        if self._DEBUG:
--            print self._DEBUG_INFO, 'Reading value from %2X' % reg
-+        #if self._DEBUG:
-+        #    print self._DEBUG_INFO, 'Reading value from %2X' % reg
-         try:
-             results = self.bus.read_byte_data(self.address, reg)
-             return results
--        except Exception, i:
--            print i
-+        except:
-             self._check_i2c()
- 
-     def _check_i2c(self):
-         import commands
-         bus_number = self._get_bus_number()
--        print "\nYour Pi Rivision is: %s" % self._get_pi_revision()
--        print "I2C bus number is: %s" % bus_number
--        print "Checking I2C device:"
-+        #print"\nYour Pi Rivision is: %s" % self._get_pi_revision()
-+        #print "I2C bus number is: %s" % bus_number
-+        #print "Checking I2C device:"
-         cmd = "ls /dev/i2c-%d" % bus_number
-         output = commands.getoutput(cmd)
--        print 'Commands "%s" output:' % cmd
--        print output
-+        #print 'Commands "%s" output:' % cmd
-+        #print output
-         if '/dev/i2c-%d' % bus_number in output.split(' '):
--            print "I2C device setup OK"
-+            print("I2C device setup OK")
-         else:
--            print "Seems like I2C has not been set. Use 'sudo raspi-config' to set I2C"
-+            print("Seems like I2C has not been set. Use 'sudo raspi-config' to set I2C")
-         cmd = "i2cdetect -y %s" % self.bus_number
-         output = commands.getoutput(cmd)
--        print "Your PCA9685 address is set to 0x%02X" % self.address
--        print "i2cdetect output:"
--        print output
-+        #print "Your PCA9685 address is set to 0x%02X" % self.address
-+        #print "i2cdetect output:"
-+        #print output
-         outputs = output.split('\n')[1:]
-         addresses = []
-         for tmp_addresses in outputs:
-@@ -177,18 +175,18 @@
-             for address in tmp_addresses:
-                 if address != '--':
-                     addresses.append(address)
--        print "Conneceted i2c device:"
-+        print("Conneceted i2c device:")
-         if addresses == []:
--            print "None"
-+            print("None")
-         else:
-             for address in addresses:
--                print "  0x%s" % address
-+                print("  0x%s" % address)
-         if "%02X" % self.address in addresses:
--            print "Wierd, I2C device is connected. Try to run the program again. If the problem's still, email the error message to service@sunfounder.com"
-+            print("Wierd, I2C device is connected. Try to run the program again. If the problem's still, email the error message to service@sunfounder.com")
-         else:
--            print "Device is missing."
--            print "Check the address or wiring of PCA9685 servo driver, or email the error message to service@sunfounder.com"
--            print 'Exiting...'
-+            print("Device is missing.")
-+            print("Check the address or wiring of PCA9685 servo driver, or email the error message to service@sunfounder.com")
-+            print('Exiting...')
-         quit()
- 
-     @property
-@@ -198,19 +196,19 @@
-     @frequency.setter
-     def frequency(self, freq):
-         '''Set PWM frequency'''
--        if self._DEBUG:
--            print self._DEBUG_INFO, 'Set frequency to %d' % freq
-+        #if self._DEBUG:
-+        #    print self._DEBUG_INFO, 'Set frequency to %d' % freq
-         self._frequency = freq
-         prescale_value = 25000000.0
-         prescale_value /= 4096.0
-         prescale_value /= float(freq)
-         prescale_value -= 1.0
--        if self._DEBUG:
--            print self._DEBUG_INFO, 'Setting PWM frequency to %d Hz' % freq
--            print self._DEBUG_INFO, 'Estimated pre-scale: %d' % prescale_value
-+        #if self._DEBUG:
-+        #    print self._DEBUG_INFO, 'Setting PWM frequency to %d Hz' % freq
-+        #    print self._DEBUG_INFO, 'Estimated pre-scale: %d' % prescale_value
-         prescale = math.floor(prescale_value + 0.5)
--        if self._DEBUG:
--            print self._DEBUG_INFO, 'Final pre-scale: %d' % prescale
-+        #if self._DEBUG:
-+        #    print self._DEBUG_INFO, 'Final pre-scale: %d' % prescale
- 
-         old_mode = self._read_byte_data(self._MODE1);
-         new_mode = (old_mode & 0x7F) | 0x10
-@@ -222,8 +220,8 @@
- 
-     def write(self, channel, on, off):
-         '''Set on and off value on specific channel'''
--        if self._DEBUG:
--            print self._DEBUG_INFO, 'Set channel "%d" to value "%d"' % (channel, off)
-+        #if self._DEBUG:
-+        #    print self._DEBUG_INFO, 'Set channel "%d" to value "%d"' % (channel, off)
-         self._write_byte_data(self._LED0_ON_L+4*channel, on & 0xFF)
-         self._write_byte_data(self._LED0_ON_H+4*channel, on >> 8)
-         self._write_byte_data(self._LED0_OFF_L+4*channel, off & 0xFF)
-@@ -231,8 +229,8 @@
- 
-     def write_all_value(self, on, off):
-         '''Set on and off value on all channel'''
--        if self._DEBUG:
--            print self._DEBUG_INFO, 'Set all channel to value "%d"' % (off)
-+        #if self._DEBUG:
-+        #    print self._DEBUG_INFO, 'Set all channel to value "%d"' % (off)
-         self._write_byte_data(self._ALL_LED_ON_L, on & 0xFF)
-         self._write_byte_data(self._ALL_LED_ON_H, on >> 8)
-         self._write_byte_data(self._ALL_LED_OFF_L, off & 0xFF)
-@@ -254,10 +252,10 @@
-         else:
-             raise ValueError('debug must be "True" (Set debug on) or "False" (Set debug off), not "{0}"'.format(debug))
- 
--        if self._DEBUG:
--            print self._DEBUG_INFO, "Set debug on"
--        else:
--            print self._DEBUG_INFO, "Set debug off"
-+        #if self._DEBUG:
-+        #    print self._DEBUG_INFO, "Set debug on"
-+        #else:
-+        #    print self._DEBUG_INFO, "Set debug off"
- 
- if __name__ == '__main__':
-     import time
-@@ -266,9 +264,9 @@
-     pwm.frequency = 60
-     for i in range(16):
-         time.sleep(0.5)
--        print '\nChannel %d\n' % i
-+        print('\nChannel %d\n' % i)
-         time.sleep(0.5)
-         for j in range(4096):
-             pwm.write(i, 0, j)
--            print 'PWM value: %d' % j
-+            print('PWM value: %d' % j)
-             time.sleep(0.0003)
+14c14
+< import smbus
+---
+> import smbus2 as smbus
+98,99c98,99
+<                         print "Error. Pi revision didn't recognize, module number: %s" % line[11:-1]
+<                         print 'Exiting...'
+---
+>                         print("Error. Pi revision didn't recognize, module number: %s" % line[11:-1])
+>                         print('Exiting...')
+101c101
+<         except Exception, e:
+---
+>         except:
+103,104c103,104
+<             print e
+<             print 'Exiting...'
+---
+>             #print(e)
+>             print('Exiting...')
+111,112c111,112
+<         if self._DEBUG:
+<             print self._DEBUG_INFO, "Debug on"
+---
+>         #if self._DEBUG:
+>         #    print(self._DEBUG_INFO, "Debug on")
+119,120c119,120
+<         if self._DEBUG:
+<             print self._DEBUG_INFO, 'Reseting PCA9685 MODE1 (without SLEEP) and MODE2'
+---
+>         #if self._DEBUG:
+>         #    print(self._DEBUG_INFO, 'Reseting PCA9685 MODE1 (without SLEEP) and MODE2')
+134,135c134,135
+<         if self._DEBUG:
+<             print self._DEBUG_INFO, 'Writing value %2X to %2X' % (value, reg)
+---
+>         #if self._DEBUG:
+>             #print(self._DEBUG_INFO, 'Writing value %2X to %2X' % (value, reg))
+138,139c138
+<         except Exception, i:
+<             print i
+---
+>         except:
+144,145c143,144
+<         if self._DEBUG:
+<             print self._DEBUG_INFO, 'Reading value from %2X' % reg
+---
+>         #if self._DEBUG:
+>         #    print self._DEBUG_INFO, 'Reading value from %2X' % reg
+149,150c148
+<         except Exception, i:
+<             print i
+---
+>         except:
+156,158c154,156
+<         print "\nYour Pi Rivision is: %s" % self._get_pi_revision()
+<         print "I2C bus number is: %s" % bus_number
+<         print "Checking I2C device:"
+---
+>         #print"\nYour Pi Rivision is: %s" % self._get_pi_revision()
+>         #print "I2C bus number is: %s" % bus_number
+>         #print "Checking I2C device:"
+161,162c159,160
+<         print 'Commands "%s" output:' % cmd
+<         print output
+---
+>         #print 'Commands "%s" output:' % cmd
+>         #print output
+164c162
+<             print "I2C device setup OK"
+---
+>             print("I2C device setup OK")
+166c164
+<             print "Seems like I2C has not been set. Use 'sudo raspi-config' to set I2C"
+---
+>             print("Seems like I2C has not been set. Use 'sudo raspi-config' to set I2C")
+169,171c167,169
+<         print "Your PCA9685 address is set to 0x%02X" % self.address
+<         print "i2cdetect output:"
+<         print output
+---
+>         #print "Your PCA9685 address is set to 0x%02X" % self.address
+>         #print "i2cdetect output:"
+>         #print output
+180c178
+<         print "Conneceted i2c device:"
+---
+>         print("Conneceted i2c device:")
+182c180
+<             print "None"
+---
+>             print("None")
+185c183
+<                 print "  0x%s" % address
+---
+>                 print("  0x%s" % address)
+187c185
+<             print "Wierd, I2C device is connected. Try to run the program again. If the problem's still, email the error message to service@sunfounder.com"
+---
+>             print("Wierd, I2C device is connected. Try to run the program again. If the problem's still, email the error message to service@sunfounder.com")
+189,191c187,189
+<             print "Device is missing."
+<             print "Check the address or wiring of PCA9685 servo driver, or email the error message to service@sunfounder.com"
+<             print 'Exiting...'
+---
+>             print("Device is missing.")
+>             print("Check the address or wiring of PCA9685 servo driver, or email the error message to service@sunfounder.com")
+>             print('Exiting...')
+201,202c199,200
+<         if self._DEBUG:
+<             print self._DEBUG_INFO, 'Set frequency to %d' % freq
+---
+>         #if self._DEBUG:
+>         #    print self._DEBUG_INFO, 'Set frequency to %d' % freq
+208,210c206,208
+<         if self._DEBUG:
+<             print self._DEBUG_INFO, 'Setting PWM frequency to %d Hz' % freq
+<             print self._DEBUG_INFO, 'Estimated pre-scale: %d' % prescale_value
+---
+>         #if self._DEBUG:
+>         #    print self._DEBUG_INFO, 'Setting PWM frequency to %d Hz' % freq
+>         #    print self._DEBUG_INFO, 'Estimated pre-scale: %d' % prescale_value
+212,213c210,211
+<         if self._DEBUG:
+<             print self._DEBUG_INFO, 'Final pre-scale: %d' % prescale
+---
+>         #if self._DEBUG:
+>         #    print self._DEBUG_INFO, 'Final pre-scale: %d' % prescale
+225,226c223,224
+<         if self._DEBUG:
+<             print self._DEBUG_INFO, 'Set channel "%d" to value "%d"' % (channel, off)
+---
+>         #if self._DEBUG:
+>         #    print self._DEBUG_INFO, 'Set channel "%d" to value "%d"' % (channel, off)
+234,235c232,233
+<         if self._DEBUG:
+<             print self._DEBUG_INFO, 'Set all channel to value "%d"' % (off)
+---
+>         #if self._DEBUG:
+>         #    print self._DEBUG_INFO, 'Set all channel to value "%d"' % (off)
+257,260c255,258
+<         if self._DEBUG:
+<             print self._DEBUG_INFO, "Set debug on"
+<         else:
+<             print self._DEBUG_INFO, "Set debug off"
+---
+>         #if self._DEBUG:
+>         #    print self._DEBUG_INFO, "Set debug on"
+>         #else:
+>         #    print self._DEBUG_INFO, "Set debug off"
+269c267
+<         print '\nChannel %d\n' % i
+---
+>         print('\nChannel %d\n' % i)
+273c271
+<             print 'PWM value: %d' % j
+---
+>             print('PWM value: %d' % j)
