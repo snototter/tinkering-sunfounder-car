@@ -254,8 +254,9 @@ if __name__ == "__main__":
                       help='Run local on Pi, connect via TCP to sunfounders car server, or prefer dummy debug output')
     args = parser.parse_args()
     if args.runon == 'pi':
-        print('WARNING: not yet implemented')
-        ctrl = None
+        print('Loading Sunfounder GPIO controller')
+        import sunfounder_pi_car_controller as pi_ctrl
+        ctrl = pi_ctrl.GpioCarController()
     elif args.runon == 'tcp':
         print('Connecting to tcp server')
         import sunfounder_tcp_car_controller as tcp_ctrl

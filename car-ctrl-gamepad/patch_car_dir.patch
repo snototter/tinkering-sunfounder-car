@@ -1,0 +1,11 @@
+--- ../third_party/sunfounder/server/car_dir.py	2018-05-30 03:55:23.000000000 +0200
++++ sunfounder-patched/car_dir.py	2018-06-17 21:06:51.104620160 +0200
+@@ -16,7 +16,7 @@
+ 			if line[0:8] == 'offset =':
+ 				offset = int(line[9:-1])
+ 	except:
+-		print 'config error'
++		print('config error')
+ 	leftPWM += offset
+ 	homePWM += offset
+ 	rightPWM += offset

@@ -1,6 +1,7 @@
 ############################################
 ## Custom ignores
 third_party/*
+car-ctrl-gamepad/sunfounder-patched/*
 *~
 
 ############################################

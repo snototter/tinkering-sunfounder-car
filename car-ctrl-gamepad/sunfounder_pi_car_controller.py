@@ -3,13 +3,44 @@ from car_controller import CarController
 
 import sys
 # Load sunfounder's motor/servo utils
-sys.path.append('../third_party/sunfounder/server')
+#sys.path.append('../third_party/sunfounder/server')
+sys.path.append('sunfounder-patched')
 import car_dir as sfsteering
 import motor as sfdriving
 import video_dir as sfpantilt
 
 
-class SunfounderCarController(CarController):
+class GpioCarController(CarController):
     """To be used on the pi, accesses the pins directly."""
-    # use sfsteering, sfdriving, sfpantilt
-    pass
+    def __init__(self):
+        pass
+
+    def drive_forward(self):
+        sfdriving.forward()
+        return True
+
+    def drive_backward(self):
+        sfdriving.backward()
+        return True
+
+    def stop_driving(self):
+        sfdriving.ctrl(0)
+        return True
+
+    def steer_left(self):
+        sfsteering.turn_left()
+        return True
+
+    def steer_right(self):
+        sfsteering.turn_right()
+        return True
+
+    def steer_straight(self):
+        sfsteering.home()
+        return True
+
+    def set_speed(self, speed_value):
+        if speed_value < 24:
+            speed_value = 24
+        sfdriving.setSpeed(speed_value)
+        return True
