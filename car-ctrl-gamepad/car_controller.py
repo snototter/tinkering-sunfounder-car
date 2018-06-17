@@ -1,14 +1,6 @@
 #!/usr/bin/env python
 
 from abc import ABCMeta, abstractmethod
-import socket
-
-import sys
-# Load sunfounder's motor/servo utils
-sys.path.append('../third_party/sunfounder/server')
-import car_dir as sfsteering
-import motor as sfdriving
-import video_dir as sfpantilt
 
 class CarController:
     __metaclass__ = ABCMeta
@@ -37,71 +29,20 @@ class CarController:
     def steer_right(self):
         return
 
+    @abstractmethod
+    def set_speed(self, speed_value):
+        return
+
+    def stop_all(self):
+        self.stop_driving()
+
+    def home_all(self):
+        self.stop_all()
+        self.steer_straight()
+#TODO        self.pan(0)
+
     # TODO pan/tilt; home all; stop all;
 
-
-class TcpCarController(CarController):
-    """Connects to the Sunfounder TCP server."""
-    def __init__(self):
-        # TODO parameter: config
-        # Connect to the car's TCP server:
-        self.is_connected = False
-        self.host = '192.168.0.31'
-        self.port = 21567
-        self.tcp_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.tcp_client.connect((self.host, self.port))
-        self.is_connected = True
-
-    def __del__(self):
-        # Disconnect
-        if self.is_connected:
-            self.tcp_client.send('stop')
-            self.tcp_client.close()
-
-    def drive_forward(self):
-        self.tcp_client.send('forward')
-        return True
-
-    def drive_backward(self):
-        self.tcp_client.send('backward')
-        return True
-
-    def stop_driving(self):
-        self.tcp_client.send('stop')
-        return True
-
-    def steer_left(self):
-        self.tcp_client.send('left')
-        return True
-
-    def steer_right(self):
-        self.tcp_client.send('right')
-        return True
-
-    def steer_straight(self):
-        self.tcp_client.send('home')
-        return True
-# TODO 'home' home all or only steering servo???, xy_home is for pan/tilt, ... check sunfounder's server implementation
-#def stop_fun(event):
-#	tcpCliSock.send('stop')
-#def home_fun(event):
-#	tcpCliSock.send('home')
-#def x_increase(event):
-#	tcpCliSock.send('x+')
-#def x_decrease(event):
-#	tcpCliSock.send('x-')
-#def y_increase(event):
-#	tcpCliSock.send('y+')
-#def y_decrease(event):
-#	tcpCliSock.send('y-')
-#def xy_home(event):
-#	tcpCliSock.send('xy_home')
-
-
-class LocalCarController(CarController):
-    """To be used on the pi, accesses the pins directly."""
-    # use sfsteering, sfdriving, sfpantilt
-    pass
 
 class DummyCarController(CarController):
     """Used to debug without pi running"""
@@ -128,3 +69,8 @@ class DummyCarController(CarController):
     def steer_straight(self):
         print('ST Straight')
         return True
+
+    def set_speed(self, speed_value):
+        print('Setting speed to {}'.format(speed_value))
+        return True
+
