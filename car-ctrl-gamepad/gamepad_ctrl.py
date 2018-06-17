@@ -71,7 +71,7 @@ class GamepadController:
         self.states = {
             'drive' : DrivingState.STOPPED,
             'steering' : SteeringState.STRAIGHT,
-            'speed' : 20,
+            'speed' : 30,
         }
         # Stop motors, home all servos, reset speed
         self.controller.stop_all()
@@ -229,14 +229,20 @@ class GamepadController:
 
     def __req_stop_all(self, event_value):
         if event_value:
-            # TODO implement
-            print('Stop all')
+            if self.controller.stop_all():
+                self.states['drive'] = DrivingState.STOPPED
+            else:
+                # TODO raise exception
+                pass
 
     def __req_home_all(self, event_value):
         if event_value:
             self.__req_stop_all(True)
-            # TODO implement
-            print('Home all servos')
+            if self.controller.home_all():
+                self.states['steering'] = SteeringState.STRAIGHT
+            else:
+                # TODO raise exception
+                pass
 
     def __req_ignore(self, value):
         """Do nothing"""

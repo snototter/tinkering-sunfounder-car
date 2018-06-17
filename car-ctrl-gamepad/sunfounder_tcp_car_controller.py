@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from car_controller import CarController
 import socket
+import time
 
 class TcpCarController(CarController):
     """Connects to the Sunfounder TCP server."""
@@ -23,31 +24,38 @@ class TcpCarController(CarController):
 
     def drive_forward(self):
         self.tcp_client.send('forward'.encode())
+        time.sleep(0.1)
         return True
 
     def drive_backward(self):
         self.tcp_client.send('backward'.encode())
+        time.sleep(0.1)
         return True
 
     def stop_driving(self):
-        self.tcp_client.send('stop'.encode())
+        self.tcp_client.sendall('stop'.encode())
+        time.sleep(0.1)
         return True
 
     def steer_left(self):
         self.tcp_client.send('left'.encode())
+        time.sleep(0.1)
         return True
 
     def steer_right(self):
         self.tcp_client.send('right'.encode())
+        time.sleep(0.1)
         return True
 
     def steer_straight(self):
         self.tcp_client.send('home'.encode())
+        time.sleep(0.1)
         return True
 
     def set_speed(self, speed_value):
         data = 'speed' + str(speed_value)
         self.tcp_client.send(data.encode())
+        time.sleep(0.1)
         return True
 
 # TODO 'home' home all or only steering servo???, xy_home is for pan/tilt, ... check sunfounder's server implementation
