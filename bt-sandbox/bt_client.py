@@ -7,6 +7,8 @@ Python sockets (with Python 3.3 or above).
 """
 
 import socket
+import io
+from PIL import Image
 
 #serverMACAddress = '4C:34:88:E1:EB:54'
 serverMACAddress = 'B8:27:EB:9B:1B:EA'
@@ -16,8 +18,29 @@ s.connect((serverMACAddress,port))
 
 buf_size = 1024
 data = s.recv(buf_size)
-if data:
-    print(' Server is going to send {:d} bytes'.format(data))
+if data and data.decode('utf-8').startswith('size:'):
+    sz = int(data[5:])
+    print(' Server is going to send {} bytes'.format(sz))
+    buf = io.BytesIO()
+    data = s.recv(sz)
+    while sz > 0:
+    #if data:
+        num_rcv = buf.write(data)
+        print('append {} bytes to buffer'.format(num_rcv))
+        sz = sz - num_rcv
+#        print('image received, now decode...')
+        #fd = io.BytesIO(data)
+        #print(fd.getbuffer().nbytes)
+        data = s.recv(sz)
+        #image = Image.open(io.BytesIO(data))
+        #image.show()
+        #image.save(savepath)
+    print('Finished loop :-), read {} bytes'.format(buf.getbuffer().nbytes))
+    image = Image.open(buf)
+    image.show()
+else:
+    #TODO raise exception
+    pass
 
 #while 1:
 #    text = input()
