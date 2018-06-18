@@ -39,7 +39,9 @@ try:
     #        print(data)
     #        client.send(data) # Echo back to client
     #client.sendall(img_memory_file.getvalue())
+   # client.send(bytes('size:' + str(img_memory_file.getbuffer().nbytes), 'UTF-8'))
     client.send('size:' + str(img_memory_file.getbuffer().nbytes))
+    client.sendall(img_memory_file.getvalue())
 #fd.getbuffer().nbytes
 #42680
 except:	
