@@ -1,11 +1,15 @@
 #!/usr/bin/env python
 
 import argparse
-import bluetooth
+#import bluetooth
+import socket
 from PIL import Image
 from io import BytesIO
 import time
 
+#TODO 1 sending thread per client https://stackoverflow.com/questions/2905965/creating-threads-in-python
+#TODO capture image from webcam, notify threads
+#TODO keep list of threads to join upon cleanup
 def get_dummy_image_buffer():
     """Returns an in-memory image file to be sent via the socket"""
     img = Image.open('../car-ctrl-gamepad/figures/gamepad-schematic.png')
@@ -18,7 +22,11 @@ def serve_image_listeners_forever(server_address, backlog):
     """Set up socket and send images to connected clients."""
     # mac = server_address[0]
     # port = server_address[1]
-    srv_socket = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
+#pybluez:
+#    srv_socket = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
+#    srv_socket.bind(server_address)
+#    srv_socket.listen(backlog)
+    srv_socket = socket.socket(socket.AF_BLUETOOTH, socket.SOCK_STREAM, socket.BTPROTO_RFCOMM)
     srv_socket.bind(server_address)
     srv_socket.listen(backlog)
     client = None
@@ -33,10 +41,10 @@ def serve_image_listeners_forever(server_address, backlog):
             client.send('size:' + str(img_memory_file.getbuffer().nbytes))
             client.sendall(img_memory_file.getvalue())
             time.sleep(5) # wait 5sec
-
-    # except:
-    #     #TODO log
-    #     pass
+    except Exception as ex:
+        #TODO log
+        print('Exception occured')
+        print(ex)
     finally:
         print("Closing sockets")
         if client is not None:
