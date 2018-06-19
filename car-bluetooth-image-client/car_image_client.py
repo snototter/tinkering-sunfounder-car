@@ -10,8 +10,8 @@ import numpy as np
 # TODO move to utilities
 def pil2opencv(pil_image):
     np_array = np.array(pil_image)
-    if len(np_array.shape) == 3 and np_array.shape[2] == 3: 
-        # Convert RGB to BGR 
+    if len(np_array.shape) == 3 and np_array.shape[2] == 3:
+        # Convert RGB to BGR
         return np_array[:, :, ::-1] #TODO do we need to copy it? .copy()
     else:
         return np_array
@@ -43,28 +43,32 @@ class BluetoothCarImageSubscriber:
 
 
     def __receive_image(self, sock):
-        # Server sends size of image stream (encoded in-memory storage), so make a single read
-        data = sock.recv(1024)
-        if data and data.decode('utf-8').startswith('size:'):
-            # Decode buffer size.
-            sz = int(data[5:])
-            if self.verbose:
-                print('[I] Receiving image with {} bytes'.format(sz))
-
-            # Read buffer into memory.
-            buf = io.BytesIO()
-            data = sock.recv(sz)
-            while sz > 0:
-                num_rcv = buf.write(data)
+        try:
+            # Server sends size of image stream (encoded in-memory storage), so make a single read
+            data = sock.recv(1024)
+            if data and data.decode('utf-8').startswith('size:'):
+                # Decode buffer size.
+                sz = int(data[5:])
                 if self.verbose:
-                  print('    Appending {} bytes to buffer'.format(num_rcv))
-                sz = sz - num_rcv
+                    print('[I] Receiving image with {} bytes'.format(sz))
+
+                # Read buffer into memory.
+                buf = io.BytesIO()
                 data = sock.recv(sz)
-            # Decode image from memory.
-            image = Image.open(buf)
-            return image
-        else:
-            return None
+                while sz > 0:
+                    num_rcv = buf.write(data)
+                    if self.verbose:
+                      print('    Appending {} bytes to buffer'.format(num_rcv))
+                    sz = sz - num_rcv
+                    data = sock.recv(sz)
+                # Decode image from memory.
+                image = Image.open(buf)
+                return image
+            else:
+                return None
+        except ConnectionResetError:
+            print('[W] Server terminated connection')
+        return None
 
 
 if __name__ == "__main__":
@@ -83,4 +87,3 @@ if __name__ == "__main__":
 
     client = BluetoothCarImageSubscriber(args.mac, args.port, verbose=args.verbose)
     client.receive_images_forever()
-
