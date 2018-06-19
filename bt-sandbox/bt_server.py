@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-# TODO sudo hciconfig hci0 piscan
-# otherwise, client won't find the pi!
 
 import argparse
 import bluetooth
@@ -47,6 +45,7 @@ def serve_image_listeners_forever(server_address, backlog):
         print("Clean up in-memory image file")
         img_memory_file.close()
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--mac', action='store', help='MAC of the bluetooth adapter')
@@ -59,10 +58,10 @@ if __name__ == "__main__":
 
     if args.port is None:
         print('[WARNING] Using default port')
-        args.port = 23
+        args.port = 7
 
     if args.max_connections is None:
         print('[WARNING] Using default max. number of client connections')
-        args.max_connections = 3
+        args.max_connections = 5
 
     serve_image_listeners_forever((args.mac, args.port), args.max_connections)

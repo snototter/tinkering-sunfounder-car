@@ -1,50 +1,63 @@
 #!/usr/bin/env python
 
 # http://blog.kevindoran.co/bluetooth-programming-with-python-3/
-"""
-A simple Python script to send messages to a sever over Bluetooth using
-Python sockets (with Python 3.3 or above).
-"""
-
+import argparse
 import socket
 import io
 from PIL import Image
 
-#serverMACAddress = '4C:34:88:E1:EB:54'
-serverMACAddress = 'B8:27:EB:9B:1B:EA'
-port = 3
-s = socket.socket(socket.AF_BLUETOOTH, socket.SOCK_STREAM, socket.BTPROTO_RFCOMM)
-s.connect((serverMACAddress,port))
+def receive_image(sock):
+    # Server sends size of image stream (encoded in-memory storage), so make a single read
+    data = sock.recv(1024)
+    if data and data.decode('utf-8').startswith('size:'):
+        # Decode buffer size.
+        sz = int(data[5:])
+        print(' Server is going to send {} bytes'.format(sz))
 
-buf_size = 1024
-data = s.recv(buf_size)
-if data and data.decode('utf-8').startswith('size:'):
-    sz = int(data[5:])
-    print(' Server is going to send {} bytes'.format(sz))
-    buf = io.BytesIO()
-    data = s.recv(sz)
-    while sz > 0:
-    #if data:
-        num_rcv = buf.write(data)
-        print('append {} bytes to buffer'.format(num_rcv))
-        sz = sz - num_rcv
-#        print('image received, now decode...')
-        #fd = io.BytesIO(data)
-        #print(fd.getbuffer().nbytes)
+        # Read buffer into memory.
+        buf = io.BytesIO()
         data = s.recv(sz)
-        #image = Image.open(io.BytesIO(data))
-        #image.show()
-        #image.save(savepath)
-    print('Finished loop :-), read {} bytes'.format(buf.getbuffer().nbytes))
-    image = Image.open(buf)
-    image.show()
-else:
-    #TODO raise exception
-    pass
+        while sz > 0:
+            num_rcv = buf.write(data)
+            #print('append {} bytes to buffer'.format(num_rcv))
+            sz = sz - num_rcv
+            data = s.recv(sz)
+        print('Received image ({} bytes)'.format(buf.getbuffer().nbytes))
+        # Decode image from memory.
+        image = Image.open(buf)
+        # image.show()
+        return image
+    else:
+        return None
 
-#while 1:
-#    text = input()
-#    if text == "quit":
-#        break
-#    s.send(bytes(text, 'UTF-8'))
-s.close()
+def receive_images_forever(server_address):
+    sock = socket.socket(socket.AF_BLUETOOTH, socket.SOCK_STREAM, socket.BTPROTO_RFCOMM)
+    sock.connect(server_address)
+
+    try:
+        img = receive_image(sock)
+        while img is not None:
+            image.show()
+            img = receive_image(sock)
+    finally:
+    #while 1:
+    #    text = input()
+    #    if text == "quit":
+    #        break
+    #    s.send(bytes(text, 'UTF-8'))
+        sock.close()
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--mac', action='store', help="MAC of the server's bluetooth adapter")
+    parser.add_argument('--port', action='store', help='Port the server is listening on')
+    args = parser.parse_args()
+    if args.mac is None:
+        print('[WARNING] Using default MAC')
+        args.mac = 'B8:27:EB:9B:1B:EA'
+
+    if args.port is None:
+        print('[WARNING] Using default port')
+        args.port = 23
+
+    receive_images_forever((args.mac, args.port))
