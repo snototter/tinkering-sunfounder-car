@@ -1,5 +1,5 @@
 --- ../third_party/sunfounder/server/video_dir.py	2018-05-30 03:55:23.000000000 +0200
-+++ sunfounder-patched/video_dir.py	2018-06-19 23:06:02.350417994 +0200
++++ sunfounder-patched/video_dir.py	2018-06-19 23:13:23.948058040 +0200
 @@ -9,100 +9,100 @@
  Current_y = 0
  
@@ -45,8 +45,8 @@
 +  Xmax = MaxPulse + offset_x
 +  Ymin = MinPulse + offset_y
 +  Ymax = MaxPulse + offset_y
-+  home_x = (Xmax + Xmin)/2
-+  home_y = Ymin + 80
++  home_x = int((Xmax + Xmin)/2)
++  home_y = int(Ymin + 80)
 +  if busnum == None:
 +    pwm = servo.PWM()                  # Initialize the servo controller.
 +  else:
