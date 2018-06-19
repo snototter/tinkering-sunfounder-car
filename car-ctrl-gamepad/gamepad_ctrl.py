@@ -21,26 +21,12 @@ DrivingState = enum(STOPPED=1, FORWARD=2, BACKWARD=4)
 SteeringState = enum(STRAIGHT=1, LEFT=2, RIGHT=4)
 
 
-# TODO parametrize initialization of GamepadController
-# Dict Key/Absolute : { event/button code : Driving/Steering/... enum }
-# TODO Should we rename it? Key = Button, Absolute = Joystick ?
-# TODO add param stick_jittering_rejection (percentage)
-#def get_csl_generic_gamepad_config():
-#    """Exemplary config for our CSL Generic Gamepad"""
-#    gamepad_config = {
-#        'Key' : {
-#            'BTN_TRIGGER' : DrivingState.FORWARD,
-#            'BTN_THUMB2' : DrivingState.BACKWARD,
-#            'BTN_THUMB' : SteeringState.RIGHT,
-#            'BTN_TOP' : SteeringState.LEFT,
-#            },
-#        'Absolute' : {
-#            # TODO config_value & (FWD | BWD)
-#            # we need the axis range, though!
-#            'ABS_RZ' : []
-#            },
-#        }
-#    return gamepad_config
+# TODO list:
+# * Parametrization of the GamepadController with separate configs would be
+#   nice; but this requires that we map from some public config enums to the
+#   internal method handles in the constructor
+# * Replace Sunfounder's demo utils by more specialized (e.g. where we can turn
+#   the pan/tilt unit by smaller steps)
 
 class GamepadController:
     """Controlling the RaspberryPi-powered car via a gamepad."""
@@ -68,8 +54,6 @@ class GamepadController:
                 'ABS_RX' : self.__req_steering_stick255,
                 'ABS_X' : self.__req_pan_stick255,
                 'ABS_Y' : self.__req_tilt_stick255,
-                #'ABS_RZ' : (self.__req_fwd, -1, 255), # values less than the middle (127-131) indicate that we should move forward (we'll check the sign)
-                #TODO self.__req_driving_stick255 (instead of tuple) map 0-0.45 to fwd, 0.45-0.55 to stop, 0.55+ to backward
                 },
             # Dummy mappings to avoid spamming the logs while testing the events triggered by our gamepad
             'Sync' : { 'SYN_REPORT' : self.__req_ignore },
@@ -101,42 +85,24 @@ class GamepadController:
             pass
 
     def __process_event(self, event):
+        # Look up and invoke registered handler for the given gamepad event
         if event.ev_type in self.event_mapping:
-            # ev_type == analog ? map value to true/false according to the mapped __req_* callback
-            # Otherwise, just pass the event state as is.
             type_map = self.event_mapping[event.ev_type]
-            #if type(type_map) is tuple:
-            # if event.ev_type == 'Absolute':
-            #     if event.code in type_map:
-            #         # We need to map the stick values 0...max_axis to True/False - thus, our event/function mapping contains a tuple
-            #         fhandle, sgn, max_axis = type_map[event.code]
-            #         # Map the absolute value to boolean flag
-            #         bvalue = self.map_absolute_value(event.state, sgn, max_axis)
-            #         # Process request as usual:
-            #         fhandle(bvalue)
-            #     else:
-            #         print('  Unmapped CODE: {}, {}, {}'.format(event.ev_type, event.code, event.state))
-            # else:
             if event.code in type_map:
                 type_map[event.code](event.state)
             else:
-                print('  Unmapped CODE: {}, {}, {}'.format(event.ev_type, event.code, event.state))
+                print('[W] Unmapped CODE: {}, {}, {}'.format(event.ev_type, event.code, event.state))
         else:
-            print('  Unmapped EV_TYPE: {}, {}, {}'.format(event.ev_type, event.code, event.state))
+            print('[W] Unmapped EV_TYPE: {}, {}, {}'.format(event.ev_type, event.code, event.state))
 
-    # def map_absolute_value(self, value, desired_sign, max_value):
-    #     '''Maps the analog stick values to binary states required for the __req_* method'''
-    #     # TODO parametrize: our stick isn't perfectly centered and flips between 125--131 at the center position, thus, we require a minimum offset of ~10 %
-    #     if desired_sign < 0:
-    #         return value < 0.45 * max_value
-    #     else:
-    #         return value > 0.55 * max_value
 
     ###################################
     # Driving FWD/BWD/Stop
 
     def __req_drive(self, ctrl_callback, desired_state, event_value):
-        """Invoke the given control callback if we're not in the desired state. Otherwise, stop moving. Leveraged by our __req_fwd/bwd request handlers."""
+        """Invoke the given control callback if we're not in the desired state.
+           Otherwise, stop moving. Leveraged by our __req_fwd/bwd request
+           handlers."""
         if event_value:
             if self.states['drive'] != desired_state:
                 # If moving in the opposite direction, stop the motor first.
@@ -155,15 +121,15 @@ class GamepadController:
 
     def __req_driving_stick255(self, event_value):
         """Map analog stick position to ternary motor fwd/bwd/off"""
-        # Driving = fwd, stop, back; depending on axis position (allow noisy readings of the axis)
-        # We use the right axis which returns event codes from 0..255
+        # The analog stick measurements may slightly jitter, so we allow
+        # +/-5 per cent noise at the center position before reacting to the
+        # user input.
         if event_value < 0.45*255:
             self.__req_drive(self.controller.drive_forward, DrivingState.FORWARD, True)
         elif event_value < 0.55*255:
             self.__req_stop_driving()
         else:
             self.__req_drive(self.controller.drive_backward, DrivingState.BACKWARD, True)
-
 
     def __req_fwd(self, value):
         self.__req_drive(self.controller.drive_forward, DrivingState.FORWARD, value)
@@ -183,7 +149,9 @@ class GamepadController:
     # Steering
 
     def __req_steering(self, ctrl_callback, desired_state, event_value):
-        """Invoke the given control callback if we're not in the desired state. Otherwise, steer straight ahead. Leveraged by our __req_left/right request handlers."""
+        """Invoke the given control callback if we're not in the desired state.
+           Otherwise, steer straight ahead. Leveraged by our __req_left/right
+           request handlers."""
         if event_value:
             if self.states['steering'] != desired_state:
                 # If moving in the opposite direction, stop the motor first.
@@ -300,9 +268,7 @@ class GamepadController:
             pass
 
     def __req_pan_stick255(self, event_value):
-        #TODO limit pan/tilt movement programmatically!
         #TODO in analog mode, this event will be triggered multiple times per stick touch!!
-        # Sunfounder's video_dir ctrl only allows changing the pan/tilt angle by a fixed inc/dec
         if event_value < 0.45*255:
             self.__pan_left()
         elif event_value >= 0.55*255:
@@ -310,7 +276,6 @@ class GamepadController:
         #print('Current p/t step: {} / {}'.format(self.states['pan_step'], self.states['tilt_step'])) # TODO remove debug output
 
     def __req_tilt_stick255(self, event_value):
-        #TODO limit pan/tilt movement programmatically!
         #TODO in analog mode, this event will be triggered multiple times per stick touch!!
         # Sunfounder's video_dir ctrl only allows changing the pan/tilt angle by a fixed inc/dec
         if event_value < 0.45*255:
@@ -377,7 +342,8 @@ if __name__ == "__main__":
         args.bt_img_srv_port = 42
 
     if args.bt_img_srv_mac is not None:
-        img_server = image_publisher.ImagePublishingServer(args.bt_img_srv_mac, port=args.bt_img_srv_port, backlog=5)
+        img_server = image_publisher.ImagePublishingServer(args.bt_img_srv_mac,
+            port=args.bt_img_srv_port, backlog=5)
         img_server_proc = multiprocessing.Process(target=img_server.run)
         img_server_proc.start()
         #img_server_thread = Thread(target=img_server.run)
