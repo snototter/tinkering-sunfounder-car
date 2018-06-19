@@ -8,8 +8,6 @@ btmac=$(hcitool dev | grep -o -m 1 "[[:xdigit:]:]\{11,17\}")
 
 # Start up server
 source .venv/bin/activate
-python gamepad_ctrl.py --bt-img-srv-mac=${btmac} --bt-img-srv-port=42 --runon=pi
-
-
+python gamepad_ctrl.py --bt-img-srv-mac=${btmac} --bt-img-srv-port=3 --runon=pi
 
 
