@@ -38,7 +38,7 @@ def serve_image_listeners_forever(server_address, backlog):
         print('Connected to {}'.format(info))
         # TODO make separate thread to handle request
         for i in range(3):
-            client.send('size:' + str(img_memory_file.getbuffer().nbytes))
+            client.send(bytes('size:' + str(img_memory_file.getbuffer().nbytes), 'utf-8'))
             client.sendall(img_memory_file.getvalue())
             time.sleep(5) # wait 5sec
     except Exception as ex:
