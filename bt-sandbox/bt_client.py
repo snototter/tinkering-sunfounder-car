@@ -30,18 +30,19 @@ def receive_image(sock):
     else:
         return None
 
-def receive_images_forever(server_address):
+def receive_images_forever(mac, port):
     sock = socket.socket(socket.AF_BLUETOOTH, socket.SOCK_STREAM, socket.BTPROTO_RFCOMM)
-    sock.connect(server_address)
+    print('Trying to connect to "{:s}":{:d}'.format(mac, port))
+    sock.connect((mac, port))
 
     try:
         img = receive_image(sock)
         while img is not None:
             img.show()
             img = receive_image(sock)
-    except Exception as ex:
-        print('Exception occured')
-        print(ex)
+    #except Exception as ex:
+    #    print('Exception occured')
+    #    print(ex)
     finally:
     #while 1:
     #    text = input()
@@ -62,5 +63,7 @@ if __name__ == "__main__":
     if args.port is None:
         print('[WARNING] Using default port')
         args.port = 23
+    print(args.mac)
+    print(args.port, type(args.port))
 
-    receive_images_forever((args.mac, args.port))
+    receive_images_forever(args.mac, args.port)

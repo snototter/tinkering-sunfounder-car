@@ -306,7 +306,7 @@ class GamepadController:
             self.__pan_left()
         elif event_value >= 0.55*255:
             self.__pan_right()
-        print('Current p/t step: {} / {}'.format(self.states['pan_step'], self.states['tilt_step'])) # TODO remove debug output
+        #print('Current p/t step: {} / {}'.format(self.states['pan_step'], self.states['tilt_step'])) # TODO remove debug output
 
     def __req_tilt_stick255(self, event_value):
         #TODO limit pan/tilt movement programmatically!
@@ -316,7 +316,7 @@ class GamepadController:
             self.__tilt_up()
         elif event_value >= 0.55*255:
             self.__tilt_down()
-        print('Current p/t step: {} / {}'.format(self.states['pan_step'], self.states['tilt_step'])) # TODO remove debug output
+        #print('Current p/t step: {} / {}'.format(self.states['pan_step'], self.states['tilt_step'])) # TODO remove debug output
 
 
     def __req_stop_all(self, event_value):
