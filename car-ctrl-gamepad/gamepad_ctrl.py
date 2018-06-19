@@ -8,8 +8,8 @@ import sys
 sys.path.append('../third_party/inputs')
 from inputs import devices, get_gamepad, get_key, get_mouse
 
-#import multiprocessing
-from threading import Thread
+import multiprocessing
+#from threading import Thread
 import image_publisher
 
 # TODO Make util
@@ -378,10 +378,10 @@ if __name__ == "__main__":
 
     if args.bt_img_srv_mac is not None:
         img_server = image_publisher.ImagePublishingServer(args.bt_img_srv_mac, port=args.bt_img_srv_port, backlog=5)
-        #img_server_proc = multiprocessing.Process(target=img_server.run)
-        #img_server_proc.start()
-        img_server_thread = Thread(target=img_server.run)
-        img_server_thread.start()
+        img_server_proc = multiprocessing.Process(target=img_server.run)
+        img_server_proc.start()
+        #img_server_thread = Thread(target=img_server.run)
+        #img_server_thread.start()
     else:
         img_server = None
 
@@ -391,5 +391,5 @@ if __name__ == "__main__":
     # Terminate image publisher
     if img_server is not None:
         img_server.terminate()
-        #img_server_proc.join()
-        img_server_thread.join()
+        img_server_proc.join()
+        #img_server_thread.join()
