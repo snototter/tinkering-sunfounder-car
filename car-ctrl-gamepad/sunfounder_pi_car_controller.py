@@ -19,9 +19,10 @@ import video_dir as sfpantilt
 class GpioCarController(CarController):
     """To be used on the pi, accesses the pins directly."""
     def __init__(self):
-        self.busnum = 1
+        self.busnum = 1 # See sunfounder's documentation, should be 1 for RPi3
         sfdriving.setup(busnum=self.busnum)
         sfsteering.setup(busnum=self.busnum)
+        sfpantilt.setup(busnum=self.busnum)
 
     def drive_forward(self):
         sfdriving.forward()
