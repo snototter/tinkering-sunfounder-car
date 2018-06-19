@@ -47,8 +47,8 @@ class GamepadController:
         self.controller = controller
         self.step_size_speed = 10 # dec/inc speed by X
         self.speed_range = [1, 100] # min/max possible speed
-        self.pan_range = [-10, 10] # Allow +/- X "steps" of the pan servo (there's no finetuning of the pan angle yet...)
-        self.tilt_range = [-3, 5]
+        self.pan_range = [-6, 10] # Allow +/- X "steps" of the pan servo (there's no finetuning of the pan angle yet...)
+        self.tilt_range = [-10, 2]
         # Event mapping for our CSL Generic Gamepad
         self.event_mapping = {
             'Key' : {
