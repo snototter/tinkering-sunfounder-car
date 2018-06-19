@@ -21,19 +21,17 @@ class ImagePublishingServer:
         self.port = port
         self.backlog = backlog
 
+        self.client_handler = []
+
         self.srv_socket = socket.socket(socket.AF_BLUETOOTH, socket.SOCK_STREAM, socket.BTPROTO_RFCOMM)
         self.srv_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.srv_socket.bind((self.mac, self.port))
         self.srv_socket.listen(self.backlog)
         self.keep_alive = True
 
-        self.client_handler = []
-        # Start new thread
-        #self.thread = Thread(target = self.accept_image_clients)
-        #self.thread.start()
-
     def run(self):
-        # TODO set up image queue in separate thread
+        """Blocking call to wait (and deal with) incoming clients"""
+        # TODO set up image collector in separate thread, which pushed into per-client queues
         self.accept_image_clients()
 
     def terminate(self):
@@ -59,7 +57,7 @@ class ImagePublishingServer:
                 # Wait a bit to prevent spamming while debugging/showcasing
                 time.sleep(2)
         except ConnectionResetError:
-            print('[I] Client {} disconnected'.format(info))
+            print('[I] RFCOMM Client {} disconnected'.format(info))
         finally:
             client.close()
 
@@ -69,13 +67,13 @@ class ImagePublishingServer:
         try:
             #img_memory_file = get_dummy_image_buffer()
             while self.keep_alive:
-                print('[I] Waiting for client connection\nMAC {} on port {}'.format(self.mac, self.port))
+                print('[I] Publisher accepting clients at {} on port {}'.format(self.mac, self.port))
                 client, info = self.srv_socket.accept()
-                print('[I] Connected to {}'.format(info))
+                print('[I] RFCOMM client {} connected'.format(info))
                 thread = Thread(target = self.handle_client, args=(client, info,))
                 self.client_handler.append(thread)
                 thread.start()
         except KeyboardInterrupt:
-            pass
+            print('[I] Exit requested by user within ImagePublishingServer')
         finally:
-            pass
+            self.srv_socket.close() # TODO what happens if we close() a socket twice (see self.terminate)?
