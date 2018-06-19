@@ -16,12 +16,12 @@ def receive_image(sock):
 
         # Read buffer into memory.
         buf = io.BytesIO()
-        data = s.recv(sz)
+        data = sock.recv(sz)
         while sz > 0:
             num_rcv = buf.write(data)
             #print('append {} bytes to buffer'.format(num_rcv))
             sz = sz - num_rcv
-            data = s.recv(sz)
+            data = sock.recv(sz)
         print('Received image ({} bytes)'.format(buf.getbuffer().nbytes))
         # Decode image from memory.
         image = Image.open(buf)
@@ -37,8 +37,11 @@ def receive_images_forever(server_address):
     try:
         img = receive_image(sock)
         while img is not None:
-            image.show()
+            img.show()
             img = receive_image(sock)
+    except Exception as ex:
+        print('Exception occured')
+        print(ex)
     finally:
     #while 1:
     #    text = input()
@@ -50,7 +53,7 @@ def receive_images_forever(server_address):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--mac', action='store', help="MAC of the server's bluetooth adapter")
-    parser.add_argument('--port', action='store', help='Port the server is listening on')
+    parser.add_argument('--port', action='store', type=int, help='Port the server is listening on')
     args = parser.parse_args()
     if args.mac is None:
         print('[WARNING] Using default MAC')

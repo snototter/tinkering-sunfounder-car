@@ -33,7 +33,7 @@ def serve_image_listeners_forever(server_address, backlog):
     try:
         img_memory_file = get_dummy_image_buffer()
 
-        print('Waiting for client connection')
+        print('Waiting for client connection\nMAC {} on port {}'.format(server_address[0], server_address[1]))
         client, info = srv_socket.accept()
         print('Connected to {}'.format(info))
         # TODO make separate thread to handle request
