@@ -16,13 +16,14 @@ def get_dummy_image_buffer():
     img.save(img_memory_file, "png")
     return img_memory_file
 
-def serve_image_listeners_forever(server_address, backlog)
+def serve_image_listeners_forever(server_address, backlog):
     """Set up socket and send images to connected clients."""
     # mac = server_address[0]
     # port = server_address[1]
     srv_socket = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
     srv_socket.bind(server_address)
     srv_socket.listen(backlog)
+    client = None
     try:
         img_memory_file = get_dummy_image_buffer()
 
@@ -39,8 +40,9 @@ def serve_image_listeners_forever(server_address, backlog)
     #     #TODO log
     #     pass
     finally:
-        print("Closing socket")
-        client.close()
+        print("Closing sockets")
+        if client is not None:
+            client.close()
         srv_socket.close()
         print("Clean up in-memory image file")
         img_memory_file.close()
