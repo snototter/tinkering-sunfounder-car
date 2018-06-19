@@ -24,22 +24,22 @@ SteeringState = enum(STRAIGHT=1, LEFT=2, RIGHT=4)
 # Dict Key/Absolute : { event/button code : Driving/Steering/... enum }
 # TODO Should we rename it? Key = Button, Absolute = Joystick ?
 # TODO add param stick_jittering_rejection (percentage)
-def get_csl_generic_gamepad_config():
-    """Exemplary config for our CSL Generic Gamepad"""
-    gamepad_config = {
-        'Key' : {
-            'BTN_TRIGGER' : DrivingState.FORWARD,
-            'BTN_THUMB2' : DrivingState.BACKWARD,
-            'BTN_THUMB' : SteeringState.RIGHT,
-            'BTN_TOP' : SteeringState.LEFT,
-            },
-        'Absolute' : {
-            # TODO config_value & (FWD | BWD)
-            # we need the axis range, though!
-            'ABS_RZ' : []
-            },
-        }
-    return gamepad_config
+#def get_csl_generic_gamepad_config():
+#    """Exemplary config for our CSL Generic Gamepad"""
+#    gamepad_config = {
+#        'Key' : {
+#            'BTN_TRIGGER' : DrivingState.FORWARD,
+#            'BTN_THUMB2' : DrivingState.BACKWARD,
+#            'BTN_THUMB' : SteeringState.RIGHT,
+#            'BTN_TOP' : SteeringState.LEFT,
+#            },
+#        'Absolute' : {
+#            # TODO config_value & (FWD | BWD)
+#            # we need the axis range, though!
+#            'ABS_RZ' : []
+#            },
+#        }
+#    return gamepad_config
 
 class GamepadController:
     """Controlling the RaspberryPi-powered car via a gamepad."""
@@ -60,6 +60,7 @@ class GamepadController:
                 'BTN_BASE' : self.__req_slowdown,
                 'BTN_BASE3' : self.__req_stop_all,
                 'BTN_BASE4' : self.__req_home_all,
+                'BTN_PINKIE' : self.__req_home_pan_tilt,
                 },
             'Absolute' : {
                 'ABS_RZ' : self.__req_driving_stick255,
@@ -328,11 +329,20 @@ class GamepadController:
 
     def __req_home_all(self, event_value):
         if event_value:
+            # Stop motor
             self.__req_stop_all(True)
-            if self.controller.home_all():
-                self.states['steering'] = SteeringState.STRAIGHT
+            # Steer straight
+            self.__req_steer_straight()
+            # Home pan/tilt unit
+            self.__req_home_pan_tilt(True)
+
+    def __req_home_pan_tilt(self, event_value):
+        if event_value:
+            if self.controller.home_pan_tilt():
+                self.states['pan_step'] = 0
+                self.states['tilt_step'] = 0
             else:
-                # TODO raise exception
+                # TODO raise Exception
                 pass
 
     def __req_ignore(self, value):
