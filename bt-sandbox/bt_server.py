@@ -49,8 +49,8 @@ def serve_image_listeners_forever(server_address, backlog):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--mac', action='store', help='MAC of the bluetooth adapter')
-    parser.add_argument('--port', action='store', help='Port to be listening on')
-    parser.add_argument('--max-connections', action='store', help='Max. number of allowed client connections')
+    parser.add_argument('--port', action='store', type=int, help='Port to be listening on')
+    parser.add_argument('--max-connections', action='store', type=int, help='Max. number of allowed client connections')
     args = parser.parse_args()
     if args.mac is None:
         print('[WARNING] Using default MAC')
@@ -58,7 +58,7 @@ if __name__ == "__main__":
 
     if args.port is None:
         print('[WARNING] Using default port')
-        args.port = 7
+        args.port = 3
 
     if args.max_connections is None:
         print('[WARNING] Using default max. number of client connections')
