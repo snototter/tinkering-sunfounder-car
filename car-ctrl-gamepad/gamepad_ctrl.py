@@ -8,6 +8,9 @@ import sys
 sys.path.append('../third_party/inputs')
 from inputs import devices, get_gamepad, get_key, get_mouse
 
+import multiprocessing
+import image_publisher
+
 # TODO Make util
 def enum(**enums):
     return type('Enum', (), enums)
@@ -23,9 +26,9 @@ SteeringState = enum(STRAIGHT=1, LEFT=2, RIGHT=4)
 # TODO add param stick_jittering_rejection (percentage)
 def get_csl_generic_gamepad_config():
     """Exemplary config for our CSL Generic Gamepad"""
-    gamepad_config = { 
+    gamepad_config = {
         'Key' : {
-            'BTN_TRIGGER' : DrivingState.FORWARD, 
+            'BTN_TRIGGER' : DrivingState.FORWARD,
             'BTN_THUMB2' : DrivingState.BACKWARD,
             'BTN_THUMB' : SteeringState.RIGHT,
             'BTN_TOP' : SteeringState.LEFT,
@@ -33,7 +36,7 @@ def get_csl_generic_gamepad_config():
         'Absolute' : {
             # TODO config_value & (FWD | BWD)
             # we need the axis range, though!
-            'ABS_RZ' : [] 
+            'ABS_RZ' : []
             },
         }
     return gamepad_config
@@ -44,6 +47,8 @@ class GamepadController:
         self.controller = controller
         self.step_size_speed = 10 # dec/inc speed by X
         self.speed_range = [1, 100] # min/max possible speed
+        self.pan_range = [-10, 10] # Allow +/- X "steps" of the pan servo (there's no finetuning of the pan angle yet...)
+        self.tilt_range = [-3, 5]
         # Event mapping for our CSL Generic Gamepad
         self.event_mapping = {
             'Key' : {
@@ -72,7 +77,9 @@ class GamepadController:
         self.states = {
             'drive' : DrivingState.STOPPED,
             'steering' : SteeringState.STRAIGHT,
-            'speed' : 30,
+            'speed' : 40,
+            'pan_step' : 0,
+            'tilt_step' : 0,
         }
         # Stop motors, home all servos, reset speed
         self.controller.stop_all()
@@ -88,6 +95,7 @@ class GamepadController:
                     self.__process_event(event)
         except KeyboardInterrupt:
             # Quit
+            print('[I] Terminated by keyboard interrupt')
             pass
 
     def __process_event(self, event):
@@ -122,15 +130,8 @@ class GamepadController:
     #     else:
     #         return value > 0.55 * max_value
 
-    def __req_driving_stick255(self, event_value):
-        # Driving = fwd, stop, back; depending on axis position (allow noisy readings of the axis)
-        # We use the right axis which returns event codes from 0..255
-        if event_value < 0.45*255:
-            self.__req_drive(self.controller.drive_forward, DrivingState.FORWARD, True)
-        elif event_value < 0.55*255:
-            self.__req_stop_driving()
-        else:
-            self.__req_drive(self.controller.drive_backward, DrivingState.BACKWARD, True)
+    ###################################
+    # Driving FWD/BWD/Stop
 
     def __req_drive(self, ctrl_callback, desired_state, event_value):
         """Invoke the given control callback if we're not in the desired state. Otherwise, stop moving. Leveraged by our __req_fwd/bwd request handlers."""
@@ -149,6 +150,19 @@ class GamepadController:
             if self.states['drive'] == desired_state:
                 self.__req_stop_driving()
 
+
+    def __req_driving_stick255(self, event_value):
+        """Map analog stick position to ternary motor fwd/bwd/off"""
+        # Driving = fwd, stop, back; depending on axis position (allow noisy readings of the axis)
+        # We use the right axis which returns event codes from 0..255
+        if event_value < 0.45*255:
+            self.__req_drive(self.controller.drive_forward, DrivingState.FORWARD, True)
+        elif event_value < 0.55*255:
+            self.__req_stop_driving()
+        else:
+            self.__req_drive(self.controller.drive_backward, DrivingState.BACKWARD, True)
+
+
     def __req_fwd(self, value):
         self.__req_drive(self.controller.drive_forward, DrivingState.FORWARD, value)
 
@@ -162,14 +176,9 @@ class GamepadController:
             # TODO Raise exception
             pass
 
-    def __req_steering_stick255(self, event_value):
-        # Steering = left, straight, right; depending on axis position (allow noisy readings of the axis)
-        if event_value < 0.45*255:
-            self.__req_steering(self.controller.steer_left, SteeringState.LEFT, True)
-        elif event_value < 0.55*255:
-            self.__req_steer_straight()
-        else:
-            self.__req_steering(self.controller.steer_right, SteeringState.RIGHT, True)
+
+    ###################################
+    # Steering
 
     def __req_steering(self, ctrl_callback, desired_state, event_value):
         """Invoke the given control callback if we're not in the desired state. Otherwise, steer straight ahead. Leveraged by our __req_left/right request handlers."""
@@ -188,6 +197,16 @@ class GamepadController:
             if self.states['steering'] == desired_state:
                 self.__req_steer_straight()
 
+    def __req_steering_stick255(self, event_value):
+        """Map analog stick to steer left/right/straigt."""
+        # Steering = left, straight, right; depending on axis position (allow noisy readings of the axis)
+        if event_value < 0.45*255:
+            self.__req_steering(self.controller.steer_left, SteeringState.LEFT, True)
+        elif event_value < 0.55*255:
+            self.__req_steer_straight()
+        else:
+            self.__req_steering(self.controller.steer_right, SteeringState.RIGHT, True)
+
     def __req_left(self, value):
         self.__req_steering(self.controller.steer_left, SteeringState.LEFT, value)
 
@@ -200,6 +219,9 @@ class GamepadController:
         else:
             # TODO raise exception
             pass
+
+    ###################################
+    # Speed control
 
     def __req_setspeed(self, speed_value):
         # TODO check values with car firmware
@@ -219,7 +241,7 @@ class GamepadController:
           if spd + self.step_size_speed <= self.speed_range[1]:
               spd = spd + self.step_size_speed
               self.__req_setspeed(spd)
-    
+
     def __req_slowdown(self, event_value):
         if event_value: # If button is pressed down (dec. speed once, don't react to released button)
           spd = self.states['speed']
@@ -228,28 +250,72 @@ class GamepadController:
               self.__req_setspeed(spd)
 
 
+    ###################################
+    # Camera movement
+
+    def __pan_left(self):
+        if self.states['pan_step'] > self.pan_range[0]:
+            if self.controller.pan_left():
+                self.states['pan_step'] -= 1
+            else:
+                #TODO raise exception
+                pass
+        else:
+            print('[W] Cannot pan left anymore')
+            pass
+
+    def __pan_right(self):
+        if self.states['pan_step'] < self.pan_range[1]:
+            if self.controller.pan_right():
+                self.states['pan_step'] += 1
+            else:
+                #TODO raise exception
+                pass
+        else:
+            print('[W] Cannot pan right anymore')
+            pass
+
+    def __tilt_up(self):
+        if self.states['tilt_step'] > self.tilt_range[0]:
+            if self.controller.tilt_up():
+                self.states['tilt_step'] -= 1
+            else:
+                #TODO raise exception
+                pass
+        else:
+            print('[W] Cannot tilt up anymore')
+            pass
+
+    def __tilt_down(self):
+        if self.states['tilt_step'] < self.tilt_range[1]:
+            if self.controller.tilt_down():
+                self.states['tilt_step'] += 1
+            else:
+                #TODO raise exception
+                pass
+        else:
+            print('[W] Cannot tilt down anymore')
+            pass
+
     def __req_pan_stick255(self, event_value):
         #TODO limit pan/tilt movement programmatically!
         #TODO in analog mode, this event will be triggered multiple times per stick touch!!
         # Sunfounder's video_dir ctrl only allows changing the pan/tilt angle by a fixed inc/dec
         if event_value < 0.45*255:
-            self.controller.pan_left()
+            self.__pan_left()
         elif event_value >= 0.55*255:
-            self.controller.pan_right()
+            self.__pan_right()
+        print('Current p/t step: {} / {}'.format(self.states['pan_step'], self.states['tilt_step'])) # TODO remove debug output
 
     def __req_tilt_stick255(self, event_value):
         #TODO limit pan/tilt movement programmatically!
         #TODO in analog mode, this event will be triggered multiple times per stick touch!!
         # Sunfounder's video_dir ctrl only allows changing the pan/tilt angle by a fixed inc/dec
         if event_value < 0.45*255:
-            self.controller.tilt_up()
+            self.__tilt_up()
         elif event_value >= 0.55*255:
-            self.controller.tilt_down()
-        #    self.__req_steering(self.controller.steer_left, SteeringState.LEFT, True)
-        #elif event_value < 0.55*255:
-        #    self.__req_steer_straight()
-        #else:
-        #    self.__req_steering(self.controller.steer_right, SteeringState.RIGHT, True)
+            self.__tilt_down()
+        print('Current p/t step: {} / {}'.format(self.states['pan_step'], self.states['tilt_step'])) # TODO remove debug output
 
 
     def __req_stop_all(self, event_value):
@@ -274,15 +340,13 @@ class GamepadController:
         pass
 
 
-#def main():
-#    car_ctrl = GamepadController()
-#    car_ctrl.handle_events()
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--runon', action='store', choices=['pi','tcp','dummy'],
                       help='Run local on Pi, connect via TCP to sunfounders car server, or prefer dummy debug output')
+    parser.add_argument('--bt-img-srv-mac', help='MAC address of bluetooth server to push images to connected clients', action='store')
+    parser.add_argument('--bt-img-srv-port', help='Port number of bluetooth server to push images to connected clients', action='store', type=int)
+
     args = parser.parse_args()
     if args.runon == 'pi':
         print('Loading Sunfounder GPIO controller')
@@ -296,4 +360,22 @@ if __name__ == "__main__":
         print('Using dummy car controller')
         ctrl = ctrl.DummyCarController()
     car_ctrl = GamepadController(ctrl)
+
+    # Start new process to publish webcam images
+    if args.bt_img_srv_port is None:
+        args.bt_img_srv_port = 42
+
+    if args.bt_img_srv_mac is not None:
+        img_server = image_publisher.ImagePublishingServer(args.bt_img_srv_mac, port=args.bt_img_srv_port, backlog=5)
+        img_server_proc = multiprocessing.Process(target=img_server.run)
+        img_server_proc.start()
+    else:
+        img_server = None
+
+    # Listen for gamepad inputs
     car_ctrl.handle_events()
+
+    # Terminate image publisher
+    if img_server is not None:
+        img_server.terminate()
+        img_server_proc.join()
