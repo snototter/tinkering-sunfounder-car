@@ -33,7 +33,7 @@ then
   patch sunfounder-patched/PCA9685.py patch_pca9685.patch
   patch sunfounder-patched/motor.py patch_motor.patch
   patch sunfounder-patched/car_dir.py patch_car_dir.patch
-  # No need to patch video dir as of now...
+  patch sunfounder-patched/video_dir.py patch_video_dir.patch
 fi
 
 
