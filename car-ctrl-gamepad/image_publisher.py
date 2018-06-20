@@ -27,6 +27,42 @@ def np2memory_file(np_data):
     img.save(img_memory_file, "png")
     return img_memory_file
 
+#TODO clean up imports, check exceptions if fswebcam not installed, etc
+
+import os
+import subprocess
+#import threading
+#https://codereview.stackexchange.com/questions/105726/outputstream-class-for-use-with-subprocess-popen
+class OutputStream(Thread):
+    def __init__(self):
+        super(OutputStream, self).__init__()
+        self.done = False
+        self.buffer = BytesIO()
+        self.read, self.write = os.pipe()
+        self.reader = os.fdopen(self.read)
+        self.start()
+
+    def fileno(self):
+        return self.write
+
+    def __enter__(self):
+    # Theoretically could be used to set up things not in __init__
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
+    def run(self):
+        while not self.done:
+            self.buffer.write(self.reader.readline())
+
+        self.reader.close()
+
+    def close(self):
+        self.done = True
+        os.close(self.write)
+
+
 class ImageGrabber:
     def __init__(self):
         self.keep_alive = True
@@ -43,6 +79,7 @@ class ImageGrabber:
             if pyg_spec is not None:
                 print('[I] ImageGrabber using pygame')
                 self.grab_fx = self.__grab_pygame
+                self.grab_fx = self.__grab_fswebcam
             else:
                 raise ModuleNotFoundError('Neither OpenCV nor pygame is available')
 
@@ -79,6 +116,22 @@ class ImageGrabber:
             img_mem = self.client_queues[id].get(block=True)
             return img_mem
         return None
+
+    def __grab_fswebcam(self):
+#        fswebcam -q
+#        with OutputStream() as stream:
+        while self.keep_alive:
+            proc = subprocess.Popen(['fswebcam', '-q', 'grab.jpg'])
+        #proc = subprocess.Popen(['fswebcam', '-q', '-'], stdout=stream)
+            proc.wait() # could also .poll in a loop
+            #print('Proc finished?')
+        #print('buffer has {} bytes'.format(stream.getbuffer().nbytes))
+            #TODO put_image w/o loading PIL and conversion horror
+            #pil_image = Image.open(stream)
+            pil_image = Image.open('grab.jpg')
+            #print('Image loaded from disk...')
+            np_array = np.array(pil_image)
+            self.put_image(np_array)
 
     def __grab_cv2(self):
         import cv2
