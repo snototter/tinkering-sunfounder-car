@@ -9,58 +9,39 @@ import queue
 import numpy as np
 import multiprocessing
 
-def get_dummy_image_buffer():
-    """Returns an in-memory image file to be sent via the socket"""
-    img = Image.open('../car-ctrl-gamepad/figures/gamepad-schematic.png')
-    #img.show()
-    img_memory_file = BytesIO()
-    img.save(img_memory_file, "png")
-    return img_memory_file
+def is_tool(name):
+    """Check whether `name` is on PATH and marked as executable."""
+    # Taken from https://stackoverflow.com/a/34177358
+    from shutil import which
+    return which(name) is not None
 
-def np2memory_file(np_data):
-    print('converting {}'.format(np_data.shape))
+def pil2opencv(pil_image):
+    np_array = np.array(pil_image)
+    if len(np_array.shape) == 3 and np_array.shape[2] == 3:
+        # Convert RGB to BGR
+        return np_array[:, :, ::-1] #TODO do we need to copy it? .copy()
+    else:
+        return np_array
+
+# def get_dummy_image_buffer():
+#     """Returns an in-memory image file to be sent via the socket"""
+#     img = Image.open('../car-ctrl-gamepad/figures/gamepad-schematic.png')
+#     #img.show()
+#     img_memory_file = BytesIO()
+#     img.save(img_memory_file, "png")
+#     return img_memory_file
+
+def numpy2memory_file(np_data, rotate=False):
+    """Convert numpy (image) array to ByteIO stream"""
+    # print('converting {}'.format(np_data.shape))
     # Rotate 90 deg clockwise (that's what we needed for pygame captures)
     # TODO handle grayvalue (call standard data.transpose)
-    np_data = np.flip(np.transpose(np_data, (1,0,2)), axis=1)
+    if rotate:
+        np_data = np.flip(np.transpose(np_data, (1,0,2)), axis=1) # TODO check if also required for cv2
     img = Image.fromarray(np_data)
     img_memory_file = BytesIO()
     img.save(img_memory_file, "png")
     return img_memory_file
-
-#TODO clean up imports, check exceptions if fswebcam not installed, etc
-
-import os
-import subprocess
-#import threading
-#https://codereview.stackexchange.com/questions/105726/outputstream-class-for-use-with-subprocess-popen
-class OutputStream(Thread):
-    def __init__(self):
-        super(OutputStream, self).__init__()
-        self.done = False
-        self.buffer = BytesIO()
-        self.read, self.write = os.pipe()
-        self.reader = os.fdopen(self.read)
-        self.start()
-
-    def fileno(self):
-        return self.write
-
-    def __enter__(self):
-    # Theoretically could be used to set up things not in __init__
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.close()
-
-    def run(self):
-        while not self.done:
-            self.buffer.write(self.reader.readline())
-
-        self.reader.close()
-
-    def close(self):
-        self.done = True
-        os.close(self.write)
 
 
 class ImageGrabber:
@@ -68,28 +49,29 @@ class ImageGrabber:
         self.keep_alive = True
         self.thread = None
         self.client_queues = {}
-        cv2_spec = pkgutil.find_loader('cv2')
-        if False: #TODO temporarily deactivated because of broken dependencies on pi (after pip install), cv2_spec is not None:
-            # We have OpenCv, let's use it
-            print('[I] ImageGrabber using OpenCV')
-            self.grab_fx = self.__grab_cv2
+        #TODO check if fswebcam is installed, otherwise fall back to cv2, pygame
+        if not is_tool('fswebcam'):
+            print('[I] ImageGrabber using fswebcam')
+            self.grab_fx = self.__grab_fswebcam
         else:
-            # Fallback to pygame (should be installed on raspbian by default)
-            pyg_spec = pkgutil.find_loader('pygame')
-            if pyg_spec is not None:
-                print('[I] ImageGrabber using pygame')
-                self.grab_fx = self.__grab_pygame
-                self.grab_fx = self.__grab_fswebcam
+            cv2_spec = pkgutil.find_loader('cv2')
+            if cv2_spec is not None:
+                # We have OpenCV, let's use it
+                print('[I] ImageGrabber using OpenCV')
+                self.grab_fx = self.__grab_cv2
             else:
-                raise ModuleNotFoundError('Neither OpenCV nor pygame is available')
+                # Fallback to pygame (should be installed on raspbian by default)
+                pyg_spec = pkgutil.find_loader('pygame')
+                if pyg_spec is not None:
+                    print('[I] ImageGrabber using pygame')
+                    self.grab_fx = self.__grab_pygame
+                else:
+                    raise ModuleNotFoundError('Neither OpenCV nor pygame is available')
 
     def start(self):
         # Start grabbing in a separate thread
-        self.thread = Thread(target=self.run)
+        self.thread = Thread(target=self.grab_fx)
         self.thread.start()
-
-    def run(self):
-        self.grab_fx()
 
     def terminate(self):
         self.keep_alive = False
@@ -102,13 +84,13 @@ class ImageGrabber:
         print('Registered {}: now has {} items'.format(id, len(self.client_queues)))
 
 
-    def put_image(self, image):
-        mem = np2memory_file(image)
+    def put_image(self, image_memory_file):
+        # mem = np2memory_file(image)
         #print('Processing {} items'.format(len(self.client_queues)))
         for id in self.client_queues.keys():
             q = self.client_queues[id]
             if not q.full():
-                q.put(mem)
+                q.put(image_memory_file)
                 print('  => Putting into q {} [{}]'.format(id, q.qsize()))
 
     def get_image_memory_file(self, id):
@@ -118,53 +100,47 @@ class ImageGrabber:
         return None
 
     def __grab_fswebcam(self):
-#        fswebcam -q
-#        with OutputStream() as stream:
+        import subprocess
         while self.keep_alive:
-            proc = subprocess.Popen(['fswebcam', '-q', 'grab.jpg'])
-        #proc = subprocess.Popen(['fswebcam', '-q', '-'], stdout=stream)
-            proc.wait() # could also .poll in a loop
-            #print('Proc finished?')
-        #print('buffer has {} bytes'.format(stream.getbuffer().nbytes))
-            #TODO put_image w/o loading PIL and conversion horror
-            #pil_image = Image.open(stream)
-            pil_image = Image.open('grab.jpg')
-            #print('Image loaded from disk...')
-            np_array = np.array(pil_image)
-            self.put_image(np_array)
+            # Invoke fswebcam in the shell - this grabs the most recent image
+            # and outputs a bytestream onto stdout/into our pipe.
+            PIPE = subprocess.PIPE
+            proc = subprocess.Popen("fswebcam --no-banner -d /dev/video0 -r 640x480 -q -", shell=True, stderr=PIPE, stdout=PIPE)
+            (data, err) = proc.communicate()
+            # TODO check error!
+            #print(err) => b''
+            # Convert the byte buffer into a BytesIO stream which can be sent
+            # via our socket.
+            self.put_image(BytesIO(data))
 
     def __grab_cv2(self):
+        """Uses OpenCV VideoCapture to grab webcam images - lags a lot"""
         import cv2
         cam = cv2.VideoCapture(0)
         while self.keep_alive:
             success, img = cam.read()
             if success:
-                #cv2.imshow("cam-test",img)
-                #cv2.waitKey(20)
-                np_data = np.asarray(img[:,:,::-1]) # check if this correctly flips the channels!
-                self.put_image(np_data)
-                #time.sleep(0.5)
-                #TODO add to queue for client
-            #imwrite("filename.jpg",img)
+                cv2.imshow("cam-test",img)
+                cv2.waitKey(20)
+                np_data = np.asarray(img[:,:,::-1]) # TODO check if this correctly flips the channels, when decoding the bytestream at the bluetooth client
+                self.put_image(numpy2memory_file(np_data, rotate=False))
 
     def __grab_pygame(self):
-        #TODO implement and check!
+        """Uses pygame.camera to grab webcam images - lags a lot"""
         import pygame
         import pygame.camera
         import pygame.surfarray
 
         pygame.camera.init()
         cam_list = pygame.camera.list_cameras()
-        if len(cam_list) > 0: #Camera detected or not
+        if len(cam_list) > 0:
             cam = pygame.camera.Camera(cam_list[0])
             cam.start()
             while self.keep_alive:
                 img = cam.get_image()
                 if img is not None: #https://stackoverflow.com/a/34674275
                     np_data = pygame.surfarray.array3d(img)
-                    self.put_image(np_data)
-                    #time.sleep(0.5)
-            #pygame.image.save(img,"filename.jpg")
+                    self.put_image(numpy2memory_file(np_data, rotate=True))
         else:
             #TODO raise Error
             pass
@@ -198,7 +174,6 @@ class ImagePublishingServer:
 
     def run(self):
         """Blocking call to wait (and deal with) incoming clients"""
-        # TODO set up image collector in separate thread, which pushed into per-client queues
         self.accept_image_clients()
 
     def terminate(self):
@@ -263,5 +238,6 @@ def run(quit_event, mac, port, backlog):
 
     # Wait for termination signal
     quit_event.wait()
+    print('[I] Exit requested by user within image_publisher.run')
     img_server.terminate()
     img_server_thread.join()

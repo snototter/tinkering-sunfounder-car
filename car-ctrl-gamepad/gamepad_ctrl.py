@@ -341,25 +341,19 @@ if __name__ == "__main__":
 
     # Start new process to publish webcam images
     if args.bt_img_srv_port is None:
-        args.bt_img_srv_port = 42
+        args.bt_img_srv_port = 3
 
     if args.bt_img_srv_mac is not None:
-        #img_server = image_publisher.ImagePublishingServer(args.bt_img_srv_mac,
-        #    port=args.bt_img_srv_port, backlog=5)
         img_server_quit_event = multiprocessing.Event()
         img_server_proc = multiprocessing.Process(target=image_publisher.run, args=(img_server_quit_event, args.bt_img_srv_mac, args.bt_img_srv_port, 5,))
         img_server_proc.start()
-        #img_server_thread = Thread(target=img_server.run)
-        #img_server_thread.start()
     else:
-        img_server = None
+        img_server_proc = None
 
     # Listen for gamepad inputs
     car_ctrl.handle_events()
 
     # Terminate image publisher
-    if img_server is not None:
-        #img_server.terminate()
+    if img_server_proc is not None:
         img_server_quit_event.set() # Signal process to terminate
         img_server_proc.join()
-        #img_server_thread.join()
