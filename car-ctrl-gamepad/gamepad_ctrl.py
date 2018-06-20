@@ -82,7 +82,9 @@ class GamepadController:
         except KeyboardInterrupt:
             # Quit
             print('[I] Terminated by keyboard interrupt')
-            pass
+        except UnpluggedError:
+            print('[E] No gamepad plugged in')
+
 
     def __process_event(self, event):
         # Look up and invoke registered handler for the given gamepad event
