@@ -18,6 +18,7 @@ def get_dummy_image_buffer():
     return img_memory_file
 
 def np2memory_file(np_data):
+    print('converting {}'.format(np_data.shape))
     img = Image.fromarray(np_data)
     img_memory_file = BytesIO()
     img.save(img_memory_file, "png")
@@ -29,7 +30,7 @@ class ImageGrabber:
         self.thread = None
         self.client_queues = {}
         cv2_spec = pkgutil.find_loader('cv2')
-        if cv2_spec is not None:
+        if False: #TODO temporarily deactivated because of broken dependencies on pi (after pip install), cv2_spec is not None:
             # We have OpenCv, let's use it
             print('[I] ImageGrabber using OpenCV')
             self.grab_fx = self.__grab_cv2
@@ -68,7 +69,7 @@ class ImageGrabber:
             q = self.client_queues[id]
             if not q.full():
                 q.put(mem)
-                print('  => Putting into q {} [{}]'.format(id, len(q)))
+                print('  => Putting into q {} [{}]'.format(id, q.qsize()))
 
     def get_image_memory_file(self, id):
         if id in self.client_queues:
@@ -82,11 +83,11 @@ class ImageGrabber:
         while self.keep_alive:
             success, img = cam.read()
             if success:
-                cv2.imshow("cam-test",img)
-                cv2.waitKey(20)
+                #cv2.imshow("cam-test",img)
+                #cv2.waitKey(20)
                 np_data = np.asarray(img[:,:,::-1]) # check if this correctly flips the channels!
                 self.put_image(np_data)
-                time.sleep(0.5)
+                #time.sleep(0.5)
                 #TODO add to queue for client
             #imwrite("filename.jpg",img)
 
@@ -106,7 +107,7 @@ class ImageGrabber:
                 if img is not None: #https://stackoverflow.com/a/34674275
                     np_data = pygame.surfarray.array3d(img)
                     self.put_image(np_data)
-                    time.sleep(0.5)
+                    #time.sleep(0.5)
             #pygame.image.save(img,"filename.jpg")
         else:
             #TODO raise Error
