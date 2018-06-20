@@ -20,7 +20,8 @@ def get_dummy_image_buffer():
 def np2memory_file(np_data):
     print('converting {}'.format(np_data.shape))
     # Rotate 90 deg clockwise (that's what we needed for pygame captures)
-    np_data = np.flip(np_data.transpose(), axis=1)
+    # TODO handle grayvalue (call standard data.transpose)
+    np_data = np.flip(np.transpose(np_data, (1,0,2)), axis=1)
     img = Image.fromarray(np_data)
     img_memory_file = BytesIO()
     img.save(img_memory_file, "png")
@@ -60,7 +61,7 @@ class ImageGrabber:
 
     def register_consumer(self, id):
         #self.client_queues.update({id: 'bar'})
-        self.client_queues[id] = queue.Queue(maxsize=5)
+        self.client_queues[id] = queue.Queue(maxsize=2)
         print('Registered {}: now has {} items'.format(id, len(self.client_queues)))
 
 
