@@ -7,6 +7,7 @@ import time
 import pkgutil
 import queue
 
+
 class ThreadSafeDict(dict) :
     def __init__(self, * p_arg, ** n_arg) :
         dict.__init__(self, * p_arg, ** n_arg)
@@ -19,6 +20,8 @@ class ThreadSafeDict(dict) :
     def __exit__(self, type, value, traceback) :
         self._lock.release()
 #TODO implement threadsafe image queue which keeps the most up to date image
+
+CQ = ThreadSafeDict()
 
 def get_dummy_image_buffer():
     """Returns an in-memory image file to be sent via the socket"""
@@ -58,13 +61,18 @@ class ImageGrabber:
             self.thread.join()
 
     def register_consumer(self, id):
-        with self.client_queues as Q:
+        global CQ
+        with CQ as Q:
+#with self.client_queues as Q:
             Q[id] = 'foo' #queue.Queue(maxsize=5)
             print('added to Q {}'.format(id))
             print('Size is now {}'.format(len(Q)))
-            print(Q)
+            print(CQ)
 
     def put_image(self, image):
+        global CQ
+        print('  +{}'.format(len(CQ)))
+        print(CQ)
         print('   {}'.format(len(self.client_queues)))
         time.sleep(0.1)
 #        with self.client_queues as Q:
