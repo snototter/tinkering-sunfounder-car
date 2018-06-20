@@ -7,7 +7,17 @@ import time
 import pkgutil
 import queue
 
+class ThreadSafeDict(dict) :
+    def __init__(self, * p_arg, ** n_arg) :
+        dict.__init__(self, * p_arg, ** n_arg)
+        self._lock = Lock()
 
+    def __enter__(self) :
+        self._lock.acquire()
+        return self
+
+    def __exit__(self, type, value, traceback) :
+        self._lock.release()
 #TODO implement threadsafe image queue which keeps the most up to date image
 
 def get_dummy_image_buffer():
@@ -22,7 +32,7 @@ class ImageGrabber:
     def __init__(self):
         self.keep_alive = True
         self.thread = None
-        self.client_queues = {}
+        self.client_queues = ThreadSafeDict()
         cv2_spec = pkgutil.find_loader('cv2')
         if cv2_spec is not None:
             # We have OpenCv, let's use it
@@ -48,14 +58,24 @@ class ImageGrabber:
             self.thread.join()
 
     def register_consumer(self, id):
-        self.client_queues[id] = queue.Queue(maxsize=5)
+        with self.client_queues as Q:
+            Q[id] = 'foo' #queue.Queue(maxsize=5)
+            print('added to Q {}'.format(id))
+            print('Size is now {}'.format(len(Q)))
+            print(Q)
 
     def put_image(self, image):
-        for id in self.client_queues.keys():
-            q = self.client_queues[id]
-            if not q.full():
-                q.put(image)
-                print('Putting: {}'.format(image))
+        print('   {}'.format(len(self.client_queues)))
+        time.sleep(0.1)
+#        with self.client_queues as Q:
+#            print(Q)
+
+#        print('process {} Qs'.format(len(self.client_queues)))
+#        for id in self.client_queues.keys():
+#            q = self.client_queues[id]
+#            if not q.full():
+#                q.put(image)
+#                print('Putting: {}'.format(image))
 
     def __grab_cv2(self):
         import cv2
@@ -168,6 +188,8 @@ class ImagePublishingServer:
                 thread = Thread(target = self.handle_client, args=(id, client, info,))
                 #self.client_handler.append(thread)
                 self.client_handler[id] = (thread, client)
+                self.grabber.register_consumer(id)
+                print(self.grabber.client_queues)
                 thread.start()
         except KeyboardInterrupt:
             print('[I] Exit requested by user within ImagePublishingServer')
