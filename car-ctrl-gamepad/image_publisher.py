@@ -7,7 +7,7 @@ import time
 import pkgutil
 import queue
 import numpy as np
-
+import multiprocessing
 
 def get_dummy_image_buffer():
     """Returns an in-memory image file to be sent via the socket"""
@@ -56,16 +56,12 @@ class ImageGrabber:
 
 
     def put_image(self, image):
-        print('Processing {} items'.format(len(self.client_queues)))
-#        with self.client_queues as Q:
-#            print(Q)
-
-#        print('process {} Qs'.format(len(self.client_queues)))
-#        for id in self.client_queues.keys():
-#            q = self.client_queues[id]
-#            if not q.full():
-#                q.put(image)
-#                print('Putting: {}'.format(image))
+        #print('Processing {} items'.format(len(self.client_queues)))
+        for id in self.client_queues.keys():
+            q = self.client_queues[id]
+            if not q.full():
+                q.put(image)
+                print('  => Putting into q {}'.format(id))
 
     def __grab_cv2(self):
         import cv2
@@ -170,29 +166,30 @@ class ImagePublishingServer:
         """Wait for incoming clients, start new serving thread for each."""
         try:
             while self.keep_alive:
+                # Wait for client connection
                 print('[I] Publisher accepting clients at {} on port {}'.format(self.mac, self.port))
-                #client, info = self.srv_socket.accept()
-                #print('[I] RFCOMM client {} connected'.format(info))
-                time.sleep(5)
+                client, info = self.srv_socket.accept()
+                print('[I] RFCOMM client {} connected'.format(info))
+                #time.sleep(1)
+                # Register with image grabber and start handling thread
                 id = self.get_client_id()
-                #thread = Thread(target = self.handle_client, args=(id, client, info,))
+                thread = Thread(target = self.handle_client, args=(id, client, info,))
                 #self.client_handler.append(thread)
-                #self.client_handler[id] = (thread, client)
+                self.client_handler[id] = (thread, client)
                 self.grabber.register_consumer(id)
-                print(self.grabber.client_queues)
-                #thread.start()
+                thread.start()
         except KeyboardInterrupt:
             print('[I] Exit requested by user within ImagePublishingServer')
         finally:
             self.srv_socket.close() # TODO what happens if we close() a socket twice (see self.terminate)?
 
-def run(img_server):
-    #img_server.run()
-    g = ImageGrabber()
-    g.start()
-    time.sleep(1)
-    g.register_consumer(23)
-    time.sleep(0.5)
-    g.register_consumer(15)
-    time.sleep(3)
-    g.terminate()
+def run(quit_event, mac, port, backlog):
+    # Start up server
+    img_server = ImagePublishingServer(mac, port, backlog=backlog)
+    img_server_thread = Thread(target=img_server.run)
+    img_server_thread.start()
+
+    # Wait for termination signal
+    quit_event.wait()
+    img_server.terminate()
+    img_server_thread.join()
