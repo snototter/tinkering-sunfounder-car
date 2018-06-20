@@ -65,7 +65,8 @@ class ImageGrabber:
             if success:
                 cv2.imshow("cam-test",img)
                 cv2.waitKey(20)
-                self.put_image('foo')
+                np_data = np.asarray(img[:,:,::-1]) # check if this correctly flips the channels!
+                self.put_image(np_data)
                 #TODO add to queue for client
             #imwrite("filename.jpg",img)
 
@@ -73,6 +74,7 @@ class ImageGrabber:
         #TODO implement and check!
         import pygame
         import pygame.camera
+        import pygame.surfarray
 
         pygame.camera.init()
         cam_list = pygame.camera.list_cameras()
@@ -83,6 +85,7 @@ class ImageGrabber:
                 img = cam.get_image()
                 if img is not None: #https://stackoverflow.com/a/34674275
                     np_data = pygame.surfarray.array3d(img)
+                    self.put_image(np_data)
             #pygame.image.save(img,"filename.jpg")
         else:
             #TODO raise Error
