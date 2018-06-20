@@ -19,6 +19,8 @@ def get_dummy_image_buffer():
 
 def np2memory_file(np_data):
     print('converting {}'.format(np_data.shape))
+    # Rotate 90 deg clockwise (that's what we needed for pygame captures)
+    np_data = np.flip(np_data.transpose(), axis=1)
     img = Image.fromarray(np_data)
     img_memory_file = BytesIO()
     img.save(img_memory_file, "png")
