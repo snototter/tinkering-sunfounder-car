@@ -75,12 +75,18 @@ class ImageGrabber:
         import pygame.camera
 
         pygame.camera.init()
-        pygame.camera.list_camera() #Camera detected or not
-        cam = pygame.camera.Camera("/dev/video0",(640,480))
-        cam.start()
-        img = cam.get_image()
-        pygame.image.save(img,"filename.jpg")
-
+        cam_list = pygame.camera.list_cameras()
+        if len(cam_list) > 0: #Camera detected or not
+            cam = pygame.camera.Camera(cam_list[0])
+            cam.start()
+            while self.keep_alive:
+                img = cam.get_image()
+                if img is not None: #https://stackoverflow.com/a/34674275
+                    np_data = pygame.surfarray.array3d(img)
+            #pygame.image.save(img,"filename.jpg")
+        else:
+            #TODO raise Error
+            pass
 
 
 class ImagePublishingServer:

@@ -6,7 +6,7 @@ import car_controller as ctrl
 import sys
 # Zeth's inputs library
 sys.path.append('../third_party/inputs')
-from inputs import devices, get_gamepad, get_key, get_mouse
+from inputs import devices, get_gamepad, UnpluggedError
 
 import multiprocessing
 #from threading import Thread
@@ -82,7 +82,7 @@ class GamepadController:
         except KeyboardInterrupt:
             # Quit
             print('[I] Terminated by keyboard interrupt')
-        except UnpluggedError:
+        except (UnpluggedError, IndexError):
             print('[E] No gamepad plugged in')
 
 
