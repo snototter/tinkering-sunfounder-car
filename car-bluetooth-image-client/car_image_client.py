@@ -34,6 +34,7 @@ class BluetoothCarImageSubscriber:
                 mat = pil2opencv(img)
                 cv2.imshow('Stream ' + self.srv_mac, mat)
                 cv2.waitKey(50)
+                print('Image received')
                 #PIL: img.show()
                 img = self.__receive_image(sock)
         except KeyboardInterrupt:
