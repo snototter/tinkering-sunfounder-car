@@ -6,22 +6,8 @@ from io import BytesIO
 import time
 import pkgutil
 import queue
+import numpy as np
 
-
-class ThreadSafeDict(dict) :
-    def __init__(self, * p_arg, ** n_arg) :
-        dict.__init__(self, * p_arg, ** n_arg)
-        self._lock = Lock()
-
-    def __enter__(self) :
-        self._lock.acquire()
-        return self
-
-    def __exit__(self, type, value, traceback) :
-        self._lock.release()
-#TODO implement threadsafe image queue which keeps the most up to date image
-
-CQ = ThreadSafeDict()
 
 def get_dummy_image_buffer():
     """Returns an in-memory image file to be sent via the socket"""
@@ -35,7 +21,7 @@ class ImageGrabber:
     def __init__(self):
         self.keep_alive = True
         self.thread = None
-        self.client_queues = ThreadSafeDict()
+        self.client_queues = {}
         cv2_spec = pkgutil.find_loader('cv2')
         if cv2_spec is not None:
             # We have OpenCv, let's use it
@@ -52,8 +38,11 @@ class ImageGrabber:
 
     def start(self):
         # Start grabbing in a separate thread
-        self.thread = Thread(target = self.grab_fx)
+        self.thread = Thread(target=self.run)
         self.thread.start()
+
+    def run(self):
+        self.grab_fx()
 
     def terminate(self):
         self.keep_alive = False
@@ -61,20 +50,13 @@ class ImageGrabber:
             self.thread.join()
 
     def register_consumer(self, id):
-        global CQ
-        with CQ as Q:
-#with self.client_queues as Q:
-            Q[id] = 'foo' #queue.Queue(maxsize=5)
-            print('added to Q {}'.format(id))
-            print('Size is now {}'.format(len(Q)))
-            print(CQ)
+        self.client_queues.update({id: 'bar'})
+        #self.client_queues[id] = 'foo' #queue.Queue(maxsize=5)
+        print('Registered {}: now has {} items'.format(id, len(self.client_queues)))
+
 
     def put_image(self, image):
-        global CQ
-        print('  +{}'.format(len(CQ)))
-        print(CQ)
-        print('   {}'.format(len(self.client_queues)))
-        time.sleep(0.1)
+        print('Processing {} items'.format(len(self.client_queues)))
 #        with self.client_queues as Q:
 #            print(Q)
 
@@ -95,6 +77,7 @@ class ImageGrabber:
                 cv2.waitKey(20)
                 np_data = np.asarray(img[:,:,::-1]) # check if this correctly flips the channels!
                 self.put_image(np_data)
+                time.sleep(0.5)
                 #TODO add to queue for client
             #imwrite("filename.jpg",img)
 
@@ -185,21 +168,31 @@ class ImagePublishingServer:
 
     def accept_image_clients(self):
         """Wait for incoming clients, start new serving thread for each."""
-        client = None
         try:
-            #img_memory_file = get_dummy_image_buffer()
             while self.keep_alive:
                 print('[I] Publisher accepting clients at {} on port {}'.format(self.mac, self.port))
-                client, info = self.srv_socket.accept()
-                print('[I] RFCOMM client {} connected'.format(info))
+                #client, info = self.srv_socket.accept()
+                #print('[I] RFCOMM client {} connected'.format(info))
+                time.sleep(5)
                 id = self.get_client_id()
-                thread = Thread(target = self.handle_client, args=(id, client, info,))
+                #thread = Thread(target = self.handle_client, args=(id, client, info,))
                 #self.client_handler.append(thread)
-                self.client_handler[id] = (thread, client)
+                #self.client_handler[id] = (thread, client)
                 self.grabber.register_consumer(id)
                 print(self.grabber.client_queues)
-                thread.start()
+                #thread.start()
         except KeyboardInterrupt:
             print('[I] Exit requested by user within ImagePublishingServer')
         finally:
             self.srv_socket.close() # TODO what happens if we close() a socket twice (see self.terminate)?
+
+def run(img_server):
+    #img_server.run()
+    g = ImageGrabber()
+    g.start()
+    time.sleep(1)
+    g.register_consumer(23)
+    time.sleep(0.5)
+    g.register_consumer(15)
+    time.sleep(3)
+    g.terminate()
