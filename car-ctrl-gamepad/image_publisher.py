@@ -50,8 +50,8 @@ class ImageGrabber:
             self.thread.join()
 
     def register_consumer(self, id):
-        self.client_queues.update({id: 'bar'})
-        #self.client_queues[id] = 'foo' #queue.Queue(maxsize=5)
+        #self.client_queues.update({id: 'bar'})
+        self.client_queues[id] = queue.Queue(maxsize=5)
         print('Registered {}: now has {} items'.format(id, len(self.client_queues)))
 
 
@@ -93,6 +93,7 @@ class ImageGrabber:
                 if img is not None: #https://stackoverflow.com/a/34674275
                     np_data = pygame.surfarray.array3d(img)
                     self.put_image(np_data)
+                    time.sleep(0.5)
             #pygame.image.save(img,"filename.jpg")
         else:
             #TODO raise Error
