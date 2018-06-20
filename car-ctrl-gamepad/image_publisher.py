@@ -17,6 +17,12 @@ def get_dummy_image_buffer():
     img.save(img_memory_file, "png")
     return img_memory_file
 
+def np2memory_file(np_data):
+    img = Image.fromarray(np_data)
+    img_memory_file = BytesIO()
+    img.save(img_memory_file, "png")
+    return img_memory_file
+
 class ImageGrabber:
     def __init__(self):
         self.keep_alive = True
@@ -56,12 +62,19 @@ class ImageGrabber:
 
 
     def put_image(self, image):
+        mem = np2memory_file(image)
         #print('Processing {} items'.format(len(self.client_queues)))
         for id in self.client_queues.keys():
             q = self.client_queues[id]
             if not q.full():
-                q.put(image)
-                print('  => Putting into q {}'.format(id))
+                q.put(mem)
+                print('  => Putting into q {} [{}]'.format(id, len(q)))
+
+    def get_image_memory_file(self, id):
+        if id in self.client_queues:
+            img_mem = self.client_queues[id].get(block=True)
+            return img_mem
+        return None
 
     def __grab_cv2(self):
         import cv2
@@ -151,7 +164,8 @@ class ImagePublishingServer:
         try:
             while self.keep_alive:
                 # Grab image TODO
-                img_memory_file = get_dummy_image_buffer()
+                img_memory_file = self.grabber.get_image_memory_file(id)
+                #img_memory_file = get_dummy_image_buffer()
                 # Send image
                 if img_memory_file is not None:
                     client.send(bytes('size:' + str(img_memory_file.getbuffer().nbytes), 'utf-8'))
