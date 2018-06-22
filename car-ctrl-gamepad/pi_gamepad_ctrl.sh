@@ -1,5 +1,7 @@
 #!/bin/bash --
 
+# Although we should be initialized after bluetooth is up, we experienced issues (so let's wait a bit longer, and see if that fixes the bluetooth connection problems)
+sleep 10
 # Make device discoverable by the bluetooth peers
 sudo hciconfig hci0 piscan
 
