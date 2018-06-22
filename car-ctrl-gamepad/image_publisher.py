@@ -83,6 +83,8 @@ class ImageGrabber:
         self.client_queues[id] = queue.Queue(maxsize=2)
         print('Registered {}: now has {} items'.format(id, len(self.client_queues)))
 
+    def unsubscribe(self, id):
+        self.client_queues.pop(id) # will raise KeyError when called with invalid (unknown) key
 
     def put_image(self, image_memory_file):
         # mem = np2memory_file(image)
@@ -212,6 +214,7 @@ class ImagePublishingServer:
             print('[I] RFCOMM Client {} disconnected'.format(info))
         finally:
             client.close()
+            self.grabber.unsubscribe(id)
 
     def accept_image_clients(self):
         """Wait for incoming clients, start new serving thread for each."""
