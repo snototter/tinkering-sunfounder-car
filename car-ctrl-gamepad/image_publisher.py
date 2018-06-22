@@ -92,6 +92,8 @@ class ImageGrabber:
             if not q.full():
                 q.put(image_memory_file)
                 print('  => Putting into q {} [{}]'.format(id, q.qsize()))
+            else:
+                print('  !! Skipping full q {}'.format(id))
 
     def get_image_memory_file(self, id):
         if id in self.client_queues:
@@ -200,10 +202,12 @@ class ImagePublishingServer:
                 #img_memory_file = get_dummy_image_buffer()
                 # Send image
                 if img_memory_file is not None:
+                    print('Going to send{}bytes'.format(img_memory_file.getbuffer().nbytes))
                     client.sendall(bytes('size:' + str(img_memory_file.getbuffer().nbytes), 'utf-8'))
+                    #client.send(bytes('size:' + str(img_memory_file.getbuffer().nbytes), 'utf-8'))
                     client.sendall(img_memory_file.getvalue())
                 # Wait a bit to prevent spamming while debugging/showcasing
-                time.sleep(2)
+                #time.sleep(2)
         except ConnectionResetError:
             print('[I] RFCOMM Client {} disconnected'.format(info))
         finally:
