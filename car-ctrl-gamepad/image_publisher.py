@@ -49,7 +49,7 @@ class ImageGrabber:
         self.keep_alive = True
         self.thread = None
         self.client_queues = {}
-        #TODO check if fswebcam is installed, otherwise fall back to cv2, pygame
+        # Check if fswebcam is installed, otherwise fall back to cv2 or pygame
         if not is_tool('fswebcam'):
             print('[I] ImageGrabber using fswebcam')
             self.grab_fx = self.__grab_fswebcam
@@ -120,8 +120,8 @@ class ImageGrabber:
         while self.keep_alive:
             success, img = cam.read()
             if success:
-                cv2.imshow("cam-test",img)
-                cv2.waitKey(20)
+                #cv2.imshow("cam-test",img)
+                #cv2.waitKey(20)
                 np_data = np.asarray(img[:,:,::-1]) # TODO check if this correctly flips the channels, when decoding the bytestream at the bluetooth client
                 self.put_image(numpy2memory_file(np_data, rotate=False))
 
