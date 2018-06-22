@@ -50,7 +50,7 @@ class ImageGrabber:
         self.thread = None
         self.client_queues = {}
         # Check if fswebcam is installed, otherwise fall back to cv2 or pygame
-        if not is_tool('fswebcam'):
+        if is_tool('fswebcam'):
             print('[I] ImageGrabber using fswebcam')
             self.grab_fx = self.__grab_fswebcam
         else:
