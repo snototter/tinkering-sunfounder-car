@@ -46,7 +46,10 @@ class BluetoothCarImageSubscriber:
     def __receive_image(self, sock):
         try:
             # Server sends size of image stream (encoded in-memory storage), so make a single read
-            data = sock.recv(1024)
+            data = sock.recv(15)
+            print(type(data))
+            print(data)
+            # TODO ensure that we really received 15 bytes, not less!
             if data is not None and data.decode('utf-8').startswith('size:'):
                 # Decode buffer size.
                 sz = int(data[5:])
@@ -62,6 +65,8 @@ class BluetoothCarImageSubscriber:
                       print('    Appending {} bytes to buffer'.format(num_rcv))
                     sz = sz - num_rcv
                     data = sock.recv(sz)
+                if self.verbose:
+                    print('    Trying to decode {} bytes'.format(buf.getbuffer().nbytes))
                 # Decode image from memory.
                 image = Image.open(buf)
                 return image

@@ -199,13 +199,14 @@ class ImagePublishingServer:
     def handle_client(self, id, client, info):
         try:
             while self.keep_alive:
-                # Grab image TODO
+                # Grab image
                 img_memory_file = self.grabber.get_image_memory_file(id)
                 #img_memory_file = get_dummy_image_buffer()
                 # Send image
                 if img_memory_file is not None:
-                    print('Going to send{}bytes'.format(img_memory_file.getbuffer().nbytes))
-                    client.sendall(bytes('size:' + str(img_memory_file.getbuffer().nbytes), 'utf-8'))
+                    #print('Going to send {} bytes'.format(img_memory_file.getbuffer().nbytes))
+                    header = 'size:{:010d}'.format(img_memory_file.getbuffer().nbytes)
+                    client.sendall(bytes(header, 'utf-8'))
                     #client.send(bytes('size:' + str(img_memory_file.getbuffer().nbytes), 'utf-8'))
                     client.sendall(img_memory_file.getvalue())
                 # Wait a bit to prevent spamming while debugging/showcasing
@@ -244,7 +245,11 @@ def run(quit_event, mac, port, backlog):
     img_server_thread.start()
 
     # Wait for termination signal
-    quit_event.wait()
-    print('[I] Exit requested by user within image_publisher.run')
-    img_server.terminate()
-    img_server_thread.join()
+    try:
+        quit_event.wait()
+    except KeyboardInterrupt:
+        print('[I] Exit requested by user within image_publisher.run')
+    finally:
+        print('[I] Signaling image publishing service to shut down')
+        img_server.terminate()
+        img_server_thread.join()
