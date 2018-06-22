@@ -200,7 +200,7 @@ class ImagePublishingServer:
                 #img_memory_file = get_dummy_image_buffer()
                 # Send image
                 if img_memory_file is not None:
-                    client.send(bytes('size:' + str(img_memory_file.getbuffer().nbytes), 'utf-8'))
+                    client.sendall(bytes('size:' + str(img_memory_file.getbuffer().nbytes), 'utf-8'))
                     client.sendall(img_memory_file.getvalue())
                 # Wait a bit to prevent spamming while debugging/showcasing
                 time.sleep(2)

@@ -47,7 +47,7 @@ class BluetoothCarImageSubscriber:
         try:
             # Server sends size of image stream (encoded in-memory storage), so make a single read
             data = sock.recv(1024)
-            if data and data.decode('utf-8').startswith('size:'):
+            if data is not None and data.decode('utf-8').startswith('size:'):
                 # Decode buffer size.
                 sz = int(data[5:])
                 if self.verbose:
