@@ -34,7 +34,6 @@ class BluetoothCarImageSubscriber:
                 mat = pil2opencv(img)
                 cv2.imshow('Stream ' + self.srv_mac, mat)
                 cv2.waitKey(50)
-                print('Image received')
                 #PIL: img.show()
                 img = self.__receive_image(sock)
         except KeyboardInterrupt:
@@ -47,8 +46,6 @@ class BluetoothCarImageSubscriber:
         try:
             # Server sends size of image stream (encoded in-memory storage), so make a single read
             data = sock.recv(15)
-            print(type(data))
-            print(data)
             # TODO ensure that we really received 15 bytes, not less!
             if data is not None and data.decode('utf-8').startswith('size:'):
                 # Decode buffer size.
