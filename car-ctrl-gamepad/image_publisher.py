@@ -220,19 +220,23 @@ class ImagePublishingServer:
     def accept_image_clients(self):
         """Wait for incoming clients, start new serving thread for each."""
         try:
+            print('[I] Publisher accepting clients at {} on port {}'.format(self.mac, self.port))
+            self.srv_socket.settimeout(0.5)
             while self.keep_alive:
                 # Wait for client connection
-                print('[I] Publisher accepting clients at {} on port {}'.format(self.mac, self.port))
-                client, info = self.srv_socket.accept()
-                print('[I] RFCOMM client {} connected'.format(info))
-                #time.sleep(1)
-                # Register with image grabber and start handling thread
-                id = self.get_client_id()
-                thread = Thread(target = self.handle_client, args=(id, client, info,))
-                #self.client_handler.append(thread)
-                self.client_handler[id] = (thread, client)
-                self.grabber.register_consumer(id)
-                thread.start()
+                try:
+                    client, info = self.srv_socket.accept()
+                    print('[I] RFCOMM client {} connected'.format(info))
+                    #time.sleep(1)
+                    # Register with image grabber and start handling thread
+                    id = self.get_client_id()
+                    thread = Thread(target = self.handle_client, args=(id, client, info,))
+                    #self.client_handler.append(thread)
+                    self.client_handler[id] = (thread, client)
+                    self.grabber.register_consumer(id)
+                    thread.start()
+                except socket.timeout:
+                    pass
         except KeyboardInterrupt:
             print('[I] Exit requested by user within ImagePublishingServer')
         finally:
