@@ -80,7 +80,7 @@ class ImageGrabber:
 
     def register_consumer(self, id):
         #self.client_queues.update({id: 'bar'})
-        self.client_queues[id] = queue.Queue(maxsize=2)
+        self.client_queues[id] = queue.Queue(maxsize=1)
         print('Registered {}: now has {} items'.format(id, len(self.client_queues)))
 
     def unsubscribe(self, id):
