@@ -8,7 +8,8 @@ import sys
 sys.path.append('../third_party/inputs')
 from inputs import devices, get_gamepad, UnpluggedError
 
-import multiprocessing
+#import multiprocessing
+import threading
 #from threading import Thread
 import image_publisher
 
@@ -30,12 +31,13 @@ SteeringState = enum(STRAIGHT=1, LEFT=2, RIGHT=4)
 
 class GamepadController:
     """Controlling the RaspberryPi-powered car via a gamepad."""
-    def __init__(self, controller):
+    def __init__(self, controller, img_publisher=None):
         self.controller = controller
         self.step_size_speed = 10 # dec/inc speed by X
         self.speed_range = [1, 100] # min/max possible speed
         self.pan_range = [-6, 10] # Allow +/- X "steps" of the pan servo (there's no finetuning of the pan angle yet...)
         self.tilt_range = [-10, 2]
+        self.img_publisher = img_publisher
         # Event mapping for our CSL Generic Gamepad
         self.event_mapping = {
             'Key' : {
@@ -43,17 +45,20 @@ class GamepadController:
                 'BTN_THUMB2' : self.__req_bwd,
                 'BTN_THUMB' : self.__req_right,
                 'BTN_TOP' : self.__req_left,
-                'BTN_TOP2' : self.__req_speedup,
-                'BTN_BASE' : self.__req_slowdown,
+                'BTN_TOP2' : self.__req_capture_snapshot,
+                'BTN_BASE' : self.__req_home_pan_tilt,
                 'BTN_BASE3' : self.__req_stop_all,
                 'BTN_BASE4' : self.__req_home_all,
-                'BTN_PINKIE' : self.__req_home_pan_tilt,
+                'BTN_PINKIE' : self.__req_speedup,
+                'BTN_BASE2' : self.__req_slowdown,
                 },
             'Absolute' : {
                 'ABS_RZ' : self.__req_driving_stick255,
                 'ABS_RX' : self.__req_steering_stick255,
                 'ABS_X' : self.__req_pan_stick255,
                 'ABS_Y' : self.__req_tilt_stick255,
+                'ABS_HAT0X' : self.__req_pan_101,
+                'ABS_HAT0Y' : self.__req_tilt_101,
                 },
             # Dummy mappings to avoid spamming the logs while testing the events triggered by our gamepad
             'Sync' : { 'SYN_REPORT' : self.__req_ignore },
@@ -269,6 +274,12 @@ class GamepadController:
             print('[W] Cannot tilt down anymore')
             pass
 
+    def __req_pan_101(self, event_value):
+        if event_value < 0:
+            self.__pan_left()
+        elif event_value > 0:
+            self.__pan_right()
+
     def __req_pan_stick255(self, event_value):
         #TODO in analog mode, this event will be triggered multiple times per stick touch!!
         if event_value < 0.45*255:
@@ -277,6 +288,12 @@ class GamepadController:
             self.__pan_right()
         #print('Current p/t step: {} / {}'.format(self.states['pan_step'], self.states['tilt_step'])) # TODO remove debug output
 
+    def __req_tilt_101(self, event_value):
+        if event_value < 0:
+            self.__tilt_up()
+        elif event_value > 0:
+            self.__tilt_down()
+            
     def __req_tilt_stick255(self, event_value):
         #TODO in analog mode, this event will be triggered multiple times per stick touch!!
         # Sunfounder's video_dir ctrl only allows changing the pan/tilt angle by a fixed inc/dec
@@ -313,6 +330,10 @@ class GamepadController:
                 # TODO raise Exception
                 pass
 
+    def __req_capture_snapshot(self, event_value):
+        if event_value and self.img_publisher is not None:
+            self.img_publisher.publish_current_image()
+
     def __req_ignore(self, value):
         """Do nothing"""
         pass
@@ -337,23 +358,30 @@ if __name__ == "__main__":
     else:
         print('Using dummy car controller')
         ctrl = ctrl.DummyCarController()
-    car_ctrl = GamepadController(ctrl)
 
     # Start new process to publish webcam images
     if args.bt_img_srv_port is None:
         args.bt_img_srv_port = 3
 
     if args.bt_img_srv_mac is not None:
-        img_server_quit_event = multiprocessing.Event()
-        img_server_proc = multiprocessing.Process(target=image_publisher.run, args=(img_server_quit_event, args.bt_img_srv_mac, args.bt_img_srv_port, 5,))
-        img_server_proc.start()
+        img_publisher = image_publisher.ImagePublishingServer(args.bt_img_srv_mac, args.bt_img_srv_port, 5)
+        img_publisher_thread = threading.Thread(target=img_publisher.run)
+        img_publisher_thread.start()
+#        img_server_quit_event = multiprocessing.Event()
+#        img_server_proc = multiprocessing.Process(target=image_publisher.run, args=(img_server_quit_event, args.bt_img_srv_mac, args.bt_img_srv_port, 5,))
+#        img_server_proc.start()
     else:
-        img_server_proc = None
+        img_publisher = None
+        # img_server_proc = None
 
+    car_ctrl = GamepadController(ctrl, img_publisher)
     # Listen for gamepad inputs
     car_ctrl.handle_events()
 
     # Terminate image publisher
-    if img_server_proc is not None:
-        img_server_quit_event.set() # Signal process to terminate
-        img_server_proc.join()
+    # if img_server_proc is not None:
+    if img_publisher is not None:
+        img_publisher.terminate()
+        img_publisher_thread.join()
+        # img_server_quit_event.set() # Signal process to terminate
+        # img_server_proc.join()
