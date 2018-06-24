@@ -212,10 +212,10 @@ class GamepadController:
     # Speed control
 
     def __req_setspeed(self, speed_value):
-        # TODO check values with car firmware
-        if speed_value >= 0 and speed_value <= 100:
+        if speed_value >= self.speed_range[0] and speed_value <= self.speed_range[1]:
             if self.controller.set_speed(speed_value):
                 self.states['speed'] = speed_value
+                #print('[I] Speed: {}'.format(speed_value))
             else:
                 # TODO raise exception
                 pass
