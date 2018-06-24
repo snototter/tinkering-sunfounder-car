@@ -6,8 +6,9 @@ import car_controller as ctrl
 import sys
 # Zeth's inputs library
 sys.path.append('../third_party/inputs')
-from inputs import devices, get_gamepad, UnpluggedError
-
+import inputs
+#from inputs import devices, get_gamepad, UnpluggedError
+import time
 #import multiprocessing
 import threading
 #from threading import Thread
@@ -79,16 +80,26 @@ class GamepadController:
 
 
     def handle_events(self):
-        try:
-            while True:
-                events = get_gamepad()
-                for event in events:
-                    self.__process_event(event)
-        except KeyboardInterrupt:
-            # Quit
-            print('[I] Terminated by keyboard interrupt')
-        except (UnpluggedError, IndexError):
-            print('[E] No gamepad plugged in')
+        devices = inputs.DeviceManager()
+        keep_alive = True
+        while keep_alive:
+            try:
+                if len(devices.gamepads) > 0:
+                    events = devices.gamepads[0].read()
+                    for event in events:
+                        self.__process_event(event)
+                else:
+                    print('[W] No gamepad connected')
+                    time.sleep(3)
+                    devices = inputs.DeviceManager()
+            except KeyboardInterrupt:
+                # Quit
+                print('[I] Terminated by keyboard interrupt')
+                keep_alive = False
+            except (inputs.UnpluggedError, IndexError, OSError):
+                print('[E] No gamepad plugged in')
+                time.sleep(3)
+                devices = inputs.DeviceManager()
 
 
     def __process_event(self, event):
