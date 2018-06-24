@@ -83,8 +83,12 @@ class ImageGrabber:
         self.client_queues.pop(id) # will raise KeyError when called with invalid (unknown) key
 
     def put_current_frame(self):
+        st = time.time()
         bytesio_data = self.grab_current_image_fx()
+        gt = time.time()
         self.put_image(bytesio_data)
+        pt = time.time()
+        print('[I] Grabbing took {} s, enqueuing took {} s'.format(gt-st, pt-gt))
 
     def put_image(self, image_memory_file):
         # mem = np2memory_file(image)

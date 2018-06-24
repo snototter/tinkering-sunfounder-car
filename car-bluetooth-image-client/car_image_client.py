@@ -6,6 +6,7 @@ import io
 from PIL import Image
 import cv2
 import numpy as np
+import time
 
 # TODO move to utilities
 def pil2opencv(pil_image):
@@ -45,6 +46,7 @@ class BluetoothCarImageSubscriber:
     def __receive_image(self, sock):
         try:
             # Server sends size of image stream (encoded in-memory storage), so make a single read
+            st1 = time.time()
             data = sock.recv(15)
             # TODO ensure that we really received 15 bytes, not less!
             if data is not None and data.decode('utf-8').startswith('size:'):
@@ -53,6 +55,7 @@ class BluetoothCarImageSubscriber:
                 if self.verbose:
                     print('[I] Receiving image with {} bytes'.format(sz))
 
+                st2 = time.time()
                 # Read buffer into memory.
                 buf = io.BytesIO()
                 data = sock.recv(sz)
@@ -64,8 +67,11 @@ class BluetoothCarImageSubscriber:
                     data = sock.recv(sz)
                 if self.verbose:
                     print('    Trying to decode {} bytes'.format(buf.getbuffer().nbytes))
+                st3 = time.time()
                 # Decode image from memory.
                 image = Image.open(buf)
+                st4 = time.time()
+                print('[I] Waited {} s for response, {} s to receive, {} s to decode'.format(st2-st1, st3-st2, st4-st3))
                 return image
             else:
                 return None
