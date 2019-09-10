@@ -67,15 +67,16 @@ class CarControlTcpServer:
                 if not data:
                     break
                 datastr = data.decode('utf-8').lower()
-                print('Client sent me: ', datastr)
-                is_forward = datastr[0] == 'f'
-                turn_left = datastr[1] == 'l'
-                straight = datastr[1] == 's'
-                speed = int(datastr[2:])
-                print(is_forward, turn_left, speed)
-
-
-            self.keep_alive = False
+                print('Client sent me: "{:s}"'.format(datastr))
+                should_stop = datastr[0] == 'q'
+                if should_stop:
+                    print('  STOPPING')
+                else:
+                    is_forward = datastr[0] == 'f'
+                    turn_left = datastr[1] == 'l'
+                    straight = datastr[1] == 's'
+                    speed = int(datastr[2:])
+                    print(is_forward, turn_left, speed)
 
                 # # Grab image
                 # img_memory_file = self.grabber.get_image_memory_file(id)
@@ -103,7 +104,7 @@ class CarControlTcpServer:
                 # Wait for client connection
                 try:
                     client, info = self.srv_socket.accept()
-                    print('[I] RFCOMM client {} connected'.format(info))
+                    print('[I] Client {} connected'.format(info))
                     #time.sleep(1)
                     # Register with image grabber and start handling thread
                     id = self.get_client_id()
