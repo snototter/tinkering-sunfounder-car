@@ -10,8 +10,9 @@ import threading
 import time
 
 
-# import getch
+# # import getch
 import curses
+# import pygame
  
 
 if __name__ == "__main__":
@@ -33,6 +34,26 @@ if __name__ == "__main__":
 
     speed = 20
     try:
+        # pygame.init()
+        # while True:
+            # for event in pygame.event.get():
+            #     if event.type == pygame.KEY_DOWN:
+            #         print('key is down', event)
+            # keys = pygame.key.get_pressed()
+            # if keys[pygame.K_DOWN]:
+            #     print('down')
+            # if keys[pygame.K_UP]:
+            #     print('up')
+            # if keys[pygame.K_LEFT]:
+            #     print('left')
+            # if keys[pygame.K_RIGHT]:
+            #     print('right')
+            # if keys[pygame.K_f]:
+            #     print('faster')
+            # if keys[pygame.K_s]:
+            #     print('slower')
+            # if keys[pygame.K_q]:
+            #     print('quit')
         bwd = False
         while True:
             k = screen.getch()
